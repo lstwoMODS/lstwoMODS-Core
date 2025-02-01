@@ -231,7 +231,7 @@ namespace lstwoMODS_Core
 
             var button = UIFactory.CreateButton(group, buttonText + " Button", buttonText, ButtonColor);
             button.OnClick = onClick;
-            button.Component.image = button.Transform.GetComponent<Image>();
+            button.Component.image = button.Transform.GetComponent<UnityEngine.UI.Image>();
             button.Component.image.sprite = RoundedRect;
 
             UIFactory.SetLayoutElement(button.GameObject, buttonWidth, height, 0, 0);
@@ -421,6 +421,15 @@ namespace lstwoMODS_Core
             var obj = UIFactory.CreateVerticalGroup(root, name, forceExpandWidth, forceExpandHeight, childControlWidth, childControlHeight, spacing, padding, bgColor, childAlignment);
             UIFactory.SetLayoutElement(obj, 25, 25, 9999);
             return obj;
+        }
+
+        public Dropdown CreateDropdown(string name, Action<int> onValueChanged, string defaultItemText = "", int itemFontSize = 16, string[] defaultOptions = null)
+        {
+            var obj = UIFactory.CreateDropdown(root, name, out var dropdown, defaultItemText, itemFontSize, onValueChanged, defaultOptions);
+            dropdown.image.sprite = RoundedRect;
+            UIFactory.SetLayoutElement(obj, 25, 25, 9999);
+
+            return dropdown;
         }
     }
 }

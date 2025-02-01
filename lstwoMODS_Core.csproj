@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net46</TargetFramework>
-    <AssemblyName>lstwoMODS Core</AssemblyName>
-    <Description>My first plugin</Description>
+    <AssemblyName>lstwoMODS_Core</AssemblyName>
+    <Description></Description>
     <Version>1.0.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>

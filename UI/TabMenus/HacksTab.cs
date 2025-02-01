@@ -8,14 +8,11 @@ namespace lstwoMODS_Core.UI.TabMenus
 {
     public class HacksTab : BaseTab
     {
-        public bool enablePlayerDropdown;
         public List<BaseHack> Hacks = new();
 
-        public HacksTab(string name = "Mods", bool enablePlayerDropdown = true)
+        public HacksTab(string name = "Mods")
         {
             Name = name;
-
-            this.enablePlayerDropdown = enablePlayerDropdown;
         }
 
         public override void ConstructUI(GameObject root)
@@ -52,11 +49,11 @@ namespace lstwoMODS_Core.UI.TabMenus
 
                     b = !b;
 
-                    new HacksUIHelper(root).AddSpacer(6);
+                    new HacksUIHelper(newRoot).AddSpacer(6);
 
                     hack.ConstructUI(newRoot);
 
-                    new HacksUIHelper(root).AddSpacer(6);
+                    new HacksUIHelper(newRoot).AddSpacer(6);
 
                     newRoot.SetActive(false);
                 } 

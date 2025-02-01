@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34024.191
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lstwoMODS Core", "lstwoMODS Core.csproj", "{77739F7D-3E45-459B-8BE3-21F8AD972DB5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lstwoMODS_Core", "lstwoMODS_Core.csproj", "{77739F7D-3E45-459B-8BE3-21F8AD972DB5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

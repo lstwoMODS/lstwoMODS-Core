@@ -45,8 +45,8 @@ namespace lstwoMODS_Core
         public static KeybindManager KeybindManager { get; private set; }
 
         // UI TOGGLING
-        public static Action<bool> OnUIToggle { get; private set; }
-        public static List<Func<bool>> UIConditions { get; private set; } = new();
+        public static Action<bool> OnUIToggle { get; set; }
+        public static List<Func<bool>> UIConditions { get; set; } = new();
 
         private void Awake()
         {
@@ -91,11 +91,33 @@ namespace lstwoMODS_Core
         public static void InitChildClasses<T>()
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var childTypes = assemblies.SelectMany(assembly => assembly.GetTypes()).Where(t => t.IsSubclassOf(typeof(T)) && !t.IsAbstract);
+            var types = new List<Type>();
 
-            foreach (var type in childTypes)
+            foreach(var assembly in assemblies)
             {
-                Activator.CreateInstance(type);
+                try
+                {
+                    types.AddRange(assembly.GetTypes());
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"Error getting types from assembly '{assembly.FullName}': {ex.Message} {ex.StackTrace}");
+                }
+            }
+
+            foreach (var type in types)
+            {
+                try
+                {
+                    if(type.IsSubclassOf(typeof(T)) && !type.IsAbstract)
+                    {
+                        Activator.CreateInstance(type);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"Error evaluating / initializing type '{type.FullName}': {ex.Message} {ex.StackTrace}");
+                }
             }
         }
 
@@ -136,7 +158,7 @@ namespace lstwoMODS_Core
                 MainPanel.Refresh();
             }
 
-            OnUIToggle(enabled);
+            OnUIToggle?.Invoke(enabled);
         }
     }
 }
