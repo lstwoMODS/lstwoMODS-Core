@@ -10,9 +10,15 @@ namespace lstwoMODS_Core
 {
     public class HacksUIHelper
     {
-        public static Color ButtonColor { get; private set; } = new Color(.063f, .094f, .129f);
+        public static Color ButtonColor4 { get; private set; } = new Color(0.15f, 0.38f, 0.55f);
+        public static Color ButtonColor { get; private set; } = new Color(0.22f, 0.25f, 0.31f);
+        public static Color ButtonColor2 { get; private set; } = new Color(.063f, .094f, .129f);
+        public static Color ButtonColor3 { get; private set; } = new Color(0.09f, 0.24f, 0.34f);
+        public static Color ButtonColor34 { get; private set; } = new Color(0.22f, 0.25f, 0.31f);
+
         public static Color BGColor1 { get; private set; } = new Color(.129f, .145f, .176f);
         public static Color BGColor2 { get; private set; } = new Color(.114f, .129f, .161f);
+
         public static Sprite RoundedRect { get; private set; }
 
         public GameObject root { get; private set; }
@@ -113,10 +119,16 @@ namespace lstwoMODS_Core
             text.text = label;
             toggle.isOn = defaultState;
             toggle.onValueChanged.AddListener(onValueChanged);
+
             ((Image)toggle.targetGraphic).sprite = RoundedRect;
             ((Image)toggle.graphic).sprite = RoundedRect;
+
             UIFactory.SetLayoutElement(gameObject, 768, 32, 0, 0);
             gameObject.transform.Find("Background").Find("Checkmark").GetComponent<Image>().color = new Color(.565f, .792f, .976f);
+
+            var keybinder = gameObject.AddComponent<ToggleKeybinder>();
+            keybinder.toggle = toggle;
+
             return toggle;
         }
 

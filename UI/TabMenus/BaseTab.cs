@@ -46,7 +46,7 @@ namespace lstwoMODS_Core.UI.TabMenus
             var btn = ui.CreateButton( "<b>" + Name + "</b>", () =>
             {
                 SetTabActive(true);
-            }, "", null, 224, 32);
+            }, "", HacksUIHelper.ButtonColor2, 224, 32);
 
             return btn.GameObject;
         }
