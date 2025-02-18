@@ -41,8 +41,6 @@ namespace lstwoMODS_Core.Keybinds
 
                 if (libKeybinder != null)
                 {
-                Debug.Log(libKeybinder.input);
-                Debug.Log(libKeybinder.button);
                     libKeybinder.input.Text = inputString;
                     libKeybinder.button.OnClick();
                 }
