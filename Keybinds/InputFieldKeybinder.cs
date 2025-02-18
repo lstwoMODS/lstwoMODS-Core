@@ -86,6 +86,9 @@ namespace lstwoMODS_Core.Keybinds
 
             public override void RefreshScrollItem()
             {
+                input.Component.characterValidation = (keybinder as InputFieldKeybinder).input.Component.characterValidation;
+                input.Text = inputString;
+
                 if(!primaryKey.HasValue)
                 {
                     return;
@@ -119,6 +122,16 @@ namespace lstwoMODS_Core.Keybinds
                 _text += primaryKey.ToString();
 
                 text.text = _text;
+            }
+
+            public override string[] SerializeData()
+            {
+                return new string[] { inputString };
+            }
+
+            public override void DeserializeData(string[] data)
+            {
+                inputString = data[0];
             }
         }
     }

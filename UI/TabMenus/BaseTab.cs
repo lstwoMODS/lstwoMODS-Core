@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
+using UniverseLib.UI;
 
 namespace lstwoMODS_Core.UI.TabMenus
 {
@@ -41,12 +43,12 @@ namespace lstwoMODS_Core.UI.TabMenus
         /// </summary>
         /// <param name="ui">The UI Helper for the tab button layout group.</param>
         /// <returns>The button GameObject</returns>
-        public virtual GameObject ConstructTabButton(HacksUIHelper ui)
+        public virtual GameObject ConstructTabButton(GameObject root)
         {
-            var btn = ui.CreateButton( "<b>" + Name + "</b>", () =>
-            {
-                SetTabActive(true);
-            }, "", HacksUIHelper.ButtonColor2, 224, 32);
+            var btn = UIFactory.CreateButton(root, Name, "<b>" + Name + "</b>", HacksUIHelper.ButtonColor2);
+            btn.OnClick = () => SetTabActive(true);
+            btn.GameObject.GetComponent<Image>().sprite = HacksUIHelper.RoundedRect;
+            UIFactory.SetLayoutElement(btn.GameObject, 224, 32, 0, 0);
 
             return btn.GameObject;
         }

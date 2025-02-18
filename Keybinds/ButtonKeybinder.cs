@@ -104,6 +104,15 @@ namespace lstwoMODS_Core.Keybinds
 
                 text.text = _text;
             }
+
+            public override string[] SerializeData()
+            {
+                return new string[0];
+            }
+
+            public override void DeserializeData(string[] data)
+            {
+            }
         }
     }
 }

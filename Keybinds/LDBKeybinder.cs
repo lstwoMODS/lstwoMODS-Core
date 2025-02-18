@@ -10,10 +10,9 @@ using UniverseLib.UI.Models;
 
 namespace lstwoMODS_Core.Keybinds
 {
-    public class LIBKeybinder : Keybinder
+    public class LDBKeybinder : Keybinder
     {
-        public InputFieldRef input;
-        public ButtonRef button;
+        public HacksUIHelper.LDBTrio LDB;
 
         public override void OnRightClicked()
         {
@@ -23,34 +22,32 @@ namespace lstwoMODS_Core.Keybinds
 
         public override Keybind CreateKeybind()
         {
-            var keybind = new LIBKeybind(this);
+            var keybind = new LDBKeybind(this);
             keybinds.Add(keybind);
             return keybind;
         }
 
-        public class LIBKeybind : Keybind
+        public class LDBKeybind : Keybind
         {
-            public LIBKeybind(Keybinder keybinder) : base(keybinder)
+            public LDBKeybind(Keybinder keybinder) : base(keybinder)
             {
 
             }
 
             public override void OnPressed()
             {
-                var libKeybinder = keybinder as LIBKeybinder;
+                var dropdownKeybinder = keybinder as LDBKeybinder;
 
-                if (libKeybinder != null)
+                if (dropdownKeybinder != null)
                 {
-                Debug.Log(libKeybinder.input);
-                Debug.Log(libKeybinder.button);
-                    libKeybinder.input.Text = inputString;
-                    libKeybinder.button.OnClick();
+                    dropdownKeybinder.LDB.Dropdown.value = keybindValue;
+                    dropdownKeybinder.LDB.Button.OnClick.Invoke();
                 }
             }
 
             private Text text;
-            private string inputString = "";
-            private InputFieldRef input;
+            private int keybindValue = 0;
+            private Dropdown dropdown;
 
             public override void CreateScrollItem(GameObject root)
             {
@@ -78,10 +75,9 @@ namespace lstwoMODS_Core.Keybinds
 
                 UIFactory.SetLayoutElement(UIFactory.CreateUIObject("spacer", inputGroup), 6, 0, 0, 9999);
 
-                input = UIFactory.CreateInputField(inputGroup, "input", "Input for keybind");
-                input.OnValueChanged += (text) => inputString = text;
-                input.Component.image.sprite = HacksUIHelper.RoundedRect;
-                UIFactory.SetLayoutElement(input.GameObject, 555, 32, 0, 0);
+                var dropdownObj = UIFactory.CreateDropdown(inputGroup, "input", out dropdown, "Input for keybind", 16, (index) => keybindValue = index);
+                dropdown.image.sprite = HacksUIHelper.RoundedRect;
+                UIFactory.SetLayoutElement(dropdownObj, 555, 32, 0, 0);
 
                 UIFactory.SetLayoutElement(UIFactory.CreateUIObject("spacer", inputGroup), 6, 0, 0, 9999);
 
@@ -90,8 +86,8 @@ namespace lstwoMODS_Core.Keybinds
 
             public override void RefreshScrollItem()
             {
-                input.Component.characterValidation = (keybinder as LIBKeybinder).input.Component.characterValidation;
-                input.Text = inputString;
+                dropdown.options = (keybinder as DropdownKeybinder).dropdown.options;
+                dropdown.value = keybindValue;
 
                 if(!primaryKey.HasValue)
                 {
@@ -130,12 +126,12 @@ namespace lstwoMODS_Core.Keybinds
 
             public override string[] SerializeData()
             {
-                return new string[] { inputString };
+                return new string[] { keybindValue.ToString() };
             }
 
             public override void DeserializeData(string[] data)
             {
-                inputString = data[0];
+                keybindValue = int.Parse(data[0]);
             }
         }
     }

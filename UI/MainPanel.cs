@@ -28,26 +28,26 @@ namespace lstwoMODS_Core.UI
 
             var horizontalGroup = ui.CreateHorizontalGroup("horizontalGroup", true, true, true, true);
 
-            var fullTabMenu = UIFactory.CreateHorizontalGroup(horizontalGroup, "full tab menu", false, false, true, true, bgColor: new Color(.102f, .157f, .216f));
+            var fullTabMenu = UIFactory.CreateHorizontalGroup(horizontalGroup, "full tab menu", false, false, true, true, bgColor: HacksUIHelper.TabMenuBG);
             UIFactory.SetLayoutElement(fullTabMenu, 256, 1, 0, 9999);
 
             new HacksUIHelper(fullTabMenu).AddSpacer(0, 3);
 
-            var tabMenu = UIFactory.CreateScrollView(fullTabMenu, "tabMenu", out var tabMenuRoot, out var tabMenuScrollbar, new Color(.102f, .157f, .216f));
+            var tabMenu = UIFactory.CreateScrollView(fullTabMenu, "tabMenu", out var tabMenuRoot, out var tabMenuScrollbar, HacksUIHelper.TabMenuBG);
             UIFactory.SetLayoutElement(tabMenu, 253, 1, 0, 9999);
 
             var tabUi = new HacksUIHelper(tabMenuRoot);
 
-            var hacksMenu = UIFactory.CreateScrollView(horizontalGroup, "hacksMenu", out var hacksMenuRoot, out var hacksMenuScrollbar, new Color(.095f, .108f, .133f));
+            var hacksMenu = UIFactory.CreateScrollView(horizontalGroup, "hacksMenu", out var hacksMenuRoot, out var hacksMenuScrollbar, HacksUIHelper.HacksMenuBG);
             UIFactory.SetLayoutElement(hacksMenu, 512, 1, 9999, 9999);
 
             foreach (BaseTab tab in Plugin.TabMenus)
             {
                 tabUi.AddSpacer(3);
 
-                tab.ConstructTabButton(tabUi);
+                tab.ConstructTabButton(tabMenuRoot);
 
-                var newRoot = UIFactory.CreateVerticalGroup(hacksMenuRoot, tab.Name, false, false, true, true, bgColor: new Color(.095f, .108f, .133f));
+                var newRoot = UIFactory.CreateVerticalGroup(hacksMenuRoot, tab.Name, false, false, true, true, bgColor: HacksUIHelper.HacksMenuBG);
 
                 tab.ConstructUI(newRoot);
             }

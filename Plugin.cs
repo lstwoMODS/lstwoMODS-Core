@@ -19,9 +19,11 @@ using System.IO;
 
 namespace lstwoMODS_Core
 {
-    [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInPlugin(GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin
     {
+        public const string GUID = "net.lstwo.lstwomods_core";
+
         // ASSETS
         public static AssetBundle AssetBundle { get; private set; }
 
@@ -54,7 +56,10 @@ namespace lstwoMODS_Core
             AssetBundle = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "lstwo.lstwomods.assets"));
             KeybindManager = gameObject.AddComponent<KeybindManager>();
 
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+            HacksUIHelper.LoadConfig();
+            KeybindManager.LoadAllKeybinds();
+
+            Logger.LogInfo($"Plugin {GUID} is loaded!");
         }
 
         private void Start()

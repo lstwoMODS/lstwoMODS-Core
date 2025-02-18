@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using HarmonyLib;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -56,12 +60,80 @@ namespace lstwoMODS_Core.Keybinds
         public static Keybinder.Keybind AddKeybind(Keybinder.Keybind keybind)
         {
             Keybinds.Add(keybind);
+
             return keybind;
         }
 
         public static void RemoveKeybind(Keybinder.Keybind keybind)
         {
             Keybinds.Remove(keybind);
+        }
+
+        public static void SaveAllKeybinds()
+        {
+            ConvertAllKeybindsToSerializable();
+
+            var json = JsonConvert.SerializeObject(serializableKeybinders, Formatting.None);
+            var folderPath = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\lstwoMODS";
+
+            if(!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            var filePath = $@"{folderPath}\keybinds.json";
+            File.WriteAllText(filePath, json);
+        }
+
+        public static void LoadAllKeybinds()
+        {
+            var folderPath = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\lstwoMODS";
+            var filePath = $@"{folderPath}\keybinds.json";
+
+            if(!Directory.Exists(folderPath) || !File.Exists(filePath))
+            {
+                return;
+            }
+
+            var json = File.ReadAllText(filePath);
+            serializableKeybinders = JsonConvert.DeserializeObject<Dictionary<string, SerializableKeybind[]>>(json);
+        }
+
+        private static void ConvertAllKeybindsToSerializable()
+        {
+            serializableKeybinders.Clear();
+
+            foreach(var keybind in Keybinds)
+            {
+                var keybinderID = keybind.keybinder.keybinderID;
+                var serializableKeybind = new SerializableKeybind()
+                {
+                    primaryKey = keybind.primaryKey,
+                    secondaryKeys = keybind.secondaryKeys.ToArray(),
+                    data = keybind.SerializeData()
+                };
+
+                if(!serializableKeybinders.TryGetValue(keybinderID, out var serializableKeybinds))
+                {
+                    serializableKeybinds = new SerializableKeybind[1] { serializableKeybind };
+                    serializableKeybinders.Add(keybinderID, serializableKeybinds);
+                    continue;
+                }
+
+                var keybindsList = serializableKeybinds.ToList();
+                keybindsList.Add(serializableKeybind);
+                serializableKeybinders[keybinderID] = keybindsList.ToArray();
+            }
+        }
+
+        public static Dictionary<string, SerializableKeybind[]> serializableKeybinders = new();
+
+        [Serializable]
+        public class SerializableKeybind
+        {
+            public KeyCode? primaryKey;
+            public KeyCode[] secondaryKeys;
+            public string[] data;
         }
     }
 }

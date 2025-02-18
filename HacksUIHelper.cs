@@ -1,5 +1,7 @@
-﻿using lstwoMODS_Core.Keybinds;
+﻿using BepInEx.Configuration;
+using lstwoMODS_Core.Keybinds;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -10,29 +12,123 @@ namespace lstwoMODS_Core
 {
     public class HacksUIHelper
     {
-        public static Color ButtonColor4 { get; private set; } = new Color(0.15f, 0.38f, 0.55f);
-        public static Color ButtonColor { get; private set; } = new Color(0.22f, 0.25f, 0.31f);
-        public static Color ButtonColor2 { get; private set; } = new Color(.063f, .094f, .129f);
-        public static Color ButtonColor3 { get; private set; } = new Color(0.09f, 0.24f, 0.34f);
-        public static Color ButtonColor34 { get; private set; } = new Color(0.22f, 0.25f, 0.31f);
-
-        public static Color BGColor1 { get; private set; } = new Color(.129f, .145f, .176f);
-        public static Color BGColor2 { get; private set; } = new Color(.114f, .129f, .161f);
-
         public static Sprite RoundedRect { get; private set; }
+
+        private static ConfigEntry<string> configTheme;
+        private static ConfigEntry<string> configButtonColor;
+        private static ConfigEntry<string> configButtonColor2;
+        private static ConfigEntry<string> configButtonColor4;
+        private static ConfigEntry<string> configBGColor1;
+        private static ConfigEntry<string> configBGColor2;
+        private static ConfigEntry<string> configTabMenuBG;
+        private static ConfigEntry<string> configHacksMenuBG;
+
+        private static Dictionary<string, ColorTheme> themes = new();
 
         public GameObject root { get; private set; }
 
-        public HacksUIHelper(GameObject root)
+        static HacksUIHelper()
         {
             RoundedRect ??= Plugin.AssetBundle.LoadAsset<Sprite>("RoundedRect");
+        }
 
+        public static void LoadConfig()
+        {
+            themes.Add("original", originalTheme);
+
+
+            configTheme = Plugin.ConfigFile.Bind("Theme", "Theme", "original", "The theme to use for lstwoMODS.\nAvailable themes: original.\nUse custom for custom colors defined in Theme.Custom category.");
+
+            configButtonColor = Plugin.ConfigFile.Bind("Theme.Custom", "Button Color 1", "#38404F", "Custom hex color for regular buttons.");
+            configButtonColor2 = Plugin.ConfigFile.Bind("Theme.Custom", "Button Color 2", "#101821", "Custom hex color for tab buttons.");
+            configButtonColor4 = Plugin.ConfigFile.Bind("Theme.Custom", "Button Color 3", "#26618c", "Custom hex color for special buttons.");
+
+            configBGColor1 = Plugin.ConfigFile.Bind("Theme.Custom", "BG Color 1", "#21252d", "Custom hex color for mod background color 1.");
+            configBGColor2 = Plugin.ConfigFile.Bind("Theme.Custom", "BG Color 2", "#1d2129", "Custom hex color for mod background color 2.");
+
+            configTabMenuBG = Plugin.ConfigFile.Bind("Theme.Custom", "Tab Menu BG Color", "#1a2837", "Custom hex color for tab menu background.");
+            configHacksMenuBG = Plugin.ConfigFile.Bind("Theme.Custom", "Mod Menu BG Color", "#181b22", "Custom hex color for mod menu background.");
+
+
+            var configuredTheme = configTheme.Value;
+
+            if(configuredTheme == "custom")
+            {
+                LoadCustomColorTheme();
+            }
+            else
+            {
+                if(themes.ContainsKey(configuredTheme))
+                {
+                    LoadColorTheme(themes[configuredTheme]);
+                }
+                else
+                {
+                    LoadColorTheme(themes["original"]);
+                }
+            }
+        }
+
+        public static void LoadCustomColorTheme()
+        {
+            ButtonColor = HexToColor(configButtonColor.Value, Color.white).Value;
+            ButtonColor2 = HexToColor(configButtonColor2.Value, Color.white).Value;
+            ButtonColor4 = HexToColor(configButtonColor4.Value, Color.white).Value;
+            BGColor1 = HexToColor(configBGColor1.Value, Color.white).Value;
+            BGColor2 = HexToColor(configBGColor2.Value, Color.white).Value;
+            TabMenuBG = HexToColor(configTabMenuBG.Value, Color.white).Value;
+            HacksMenuBG = HexToColor(configHacksMenuBG.Value, Color.white).Value;
+        }
+
+        public static void LoadColorTheme(ColorTheme theme)
+        {
+            ButtonColor = theme.ButtonColor;
+            ButtonColor2 = theme.ButtonColor2;
+            ButtonColor4 = theme.ButtonColor4;
+            BGColor1 = theme.BGColor1;
+            BGColor2 = theme.BGColor2;
+            TabMenuBG = theme.TabMenuBG;
+            HacksMenuBG = theme.HacksMenuBG;
+        }
+
+        private static Color? HexToColor(string hex, Color? defaultResult = null)
+        {
+            if (!hex.StartsWith("#"))
+            {
+                hex = $"#{hex}";
+            }
+
+            if (ColorUtility.TryParseHtmlString(hex, out Color color))
+            {
+                return color;
+            }
+
+            Debug.LogWarning($"Invalid hex color: {hex}");
+            return defaultResult;
+        }
+
+
+        public HacksUIHelper(GameObject root)
+        {
             this.root = root;
         }
 
         public InputFieldRef CreateInputField(string placeholder, string name = "")
         {
-            return CreateInputField(placeholder, name, 256, 32);
+            var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
+            UIFactory.SetLayoutElement(group);
+
+            var inputFieldRef = UIFactory.CreateInputField(group, name, placeholder);
+            inputFieldRef.Component.image.sprite = RoundedRect;
+
+            UIFactory.SetLayoutElement(inputFieldRef.GameObject, 256, 32, 0, 0);
+
+            var keybinder = inputFieldRef.GameObject.AddComponent<InputFieldKeybinder>();
+            keybinder.input = inputFieldRef;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
+
+            return inputFieldRef;
         }
 
         public InputFieldRef CreateInputField(string placeholder, string name = "", int inputWidth = 256, int height = 32)
@@ -47,6 +143,8 @@ namespace lstwoMODS_Core
 
             var keybinder = inputFieldRef.GameObject.AddComponent<InputFieldKeybinder>();
             keybinder.input = inputFieldRef;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
 
             return inputFieldRef;
         }
@@ -103,6 +201,8 @@ namespace lstwoMODS_Core
 
             var keybinder = gameObject.AddComponent<SliderKeybinder>();
             keybinder.slider = gameObject.GetComponent<Slider>();
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
 
             return slider;
         }
@@ -128,6 +228,8 @@ namespace lstwoMODS_Core
 
             var keybinder = gameObject.AddComponent<ToggleKeybinder>();
             keybinder.toggle = toggle;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
 
             return toggle;
         }
@@ -150,6 +252,8 @@ namespace lstwoMODS_Core
 
             var buttonKeybinder = button.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder.button = button;
+            buttonKeybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            buttonKeybinder.LoadKeybinds();
 
             UIFactory.SetLayoutElement(button.GameObject, buttonWidth, height, 0, 0);
 
@@ -196,6 +300,8 @@ namespace lstwoMODS_Core
             var keybinder = _label.gameObject.AddComponent<LIBKeybinder>();
             keybinder.input = input;
             keybinder.button = button;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
 
             return new(_label, input, button);
         }
@@ -220,8 +326,8 @@ namespace lstwoMODS_Core
         /// <returns>
         /// A reference to the three components
         /// </returns>
-        public LDBTrio CreateLDBTrio(string label, string name = null, string defaultItemText = "", int itemFontSize = 16, Action<int> onValueChanged = null, Action onClick = null, string buttonText = "Apply", 
-            int labelWidth = 256, int dropdownWidth = 256, int spacerWidth = 32, int buttonWidth = 256, int height = 32)
+        public LDBTrio CreateLDBTrio(string label, string name = null, string defaultItemText = "", int itemFontSize = 16, Action<int> onValueChanged = null, Action onClick = null, 
+            string buttonText = "Apply", int labelWidth = 256, int dropdownWidth = 256, int spacerWidth = 32, int buttonWidth = 256, int height = 32)
         {
             if (name == null) name = label;
 
@@ -248,7 +354,14 @@ namespace lstwoMODS_Core
 
             UIFactory.SetLayoutElement(button.GameObject, buttonWidth, height, 0, 0);
 
-            return new(_label, dropdown, button);
+            var ldb = new LDBTrio(_label, dropdown, button);
+
+            var keybinder = _label.gameObject.AddComponent<LDBKeybinder>();
+            keybinder.LDB = ldb;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
+
+            return ldb;
         }
 
         public class LDBTrio
@@ -271,10 +384,12 @@ namespace lstwoMODS_Core
         /// <returns>
         /// A reference to the three components
         /// </returns>
-        public LBBTrio CreateLBBTrio(string label, string name = null, Action onClick1 = null, string buttonText1 = "Apply", Action onClick2 = null, string buttonText2 = "Apply", int labelWidth = 256,
-            int spacerWidth = 32, int button1Width = 256, int button2Width = 256, int height = 32)
+        public LBBTrio CreateLBBTrio(string label, string name = null, Action onClick1 = null, string buttonText1 = "Apply", string buttonName1 = null, Action onClick2 = null, 
+            string buttonText2 = "Apply", string buttonName2 = null, int labelWidth = 256, int spacerWidth = 32, int button1Width = 256, int button2Width = 256, int height = 32)
         {
-            if (name == null) name = label;
+            name ??= label;
+            buttonName1 ??= buttonText1;
+            buttonName2 ??= buttonText2;
 
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
@@ -285,26 +400,30 @@ namespace lstwoMODS_Core
             var spacer1 = UIFactory.CreateUIObject("spacer", group);
             UIFactory.SetLayoutElement(spacer1, spacerWidth);
 
-            var button1 = UIFactory.CreateButton(group, buttonText1 + " Button", buttonText1, ButtonColor);
+            var button1 = UIFactory.CreateButton(group, buttonName1, buttonText1, ButtonColor);
             button1.OnClick = onClick1;
             button1.Component.image = button1.Transform.GetComponent<Image>();
             button1.Component.image.sprite = RoundedRect;
 
             var buttonKeybinder = button1.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder.button = button1;
+            buttonKeybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}_{buttonName1}";
+            buttonKeybinder.LoadKeybinds();
 
             UIFactory.SetLayoutElement(button1.GameObject, button1Width, height, 0, 0);
 
             var spacer2 = UIFactory.CreateUIObject("spacer", group);
             UIFactory.SetLayoutElement(spacer2, spacerWidth);
 
-            var button2 = UIFactory.CreateButton(group, buttonText2 + " Button", buttonText2, ButtonColor);
+            var button2 = UIFactory.CreateButton(group, buttonName2, buttonText2, ButtonColor);
             button2.OnClick = onClick2;
             button2.Component.image = button2.Transform.GetComponent<Image>();
             button2.Component.image.sprite = RoundedRect;
 
             var buttonKeybinder2 = button2.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder2.button = button2;
+            buttonKeybinder2.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}2_{buttonName2}";
+            buttonKeybinder2.LoadKeybinds();
 
             UIFactory.SetLayoutElement(button2.GameObject, button2Width, height, 0, 0);
 
@@ -331,9 +450,10 @@ namespace lstwoMODS_Core
         /// <returns>
         /// A reference to the two components
         /// </returns>
-        public LBDuo CreateLBDuo(string label, string name = null, Action onClick = null, string buttonText = "Apply", int labelWidth = 256, int spacerWidth = 32, int buttonWidth = 256, int height = 32)
+        public LBDuo CreateLBDuo(string label, string name = null, Action onClick = null, string buttonText = "Apply", string buttonName = null, int labelWidth = 256, int spacerWidth = 32, int buttonWidth = 256, int height = 32)
         {
             if (name == null) name = label;
+            if (buttonName == null) buttonName = buttonText + " Button";
 
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
@@ -344,13 +464,15 @@ namespace lstwoMODS_Core
             var spacer = UIFactory.CreateUIObject("spacer", group);
             UIFactory.SetLayoutElement(spacer, spacerWidth);
 
-            var button = UIFactory.CreateButton(group, buttonText + " Button", buttonText, ButtonColor);
+            var button = UIFactory.CreateButton(group, buttonName, buttonText, ButtonColor);
             button.OnClick = onClick;
             button.Component.image = button.Transform.GetComponent<Image>();
             button.Component.image.sprite = RoundedRect;
 
             var buttonKeybinder = button.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder.button = button;
+            buttonKeybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            buttonKeybinder.LoadKeybinds();
 
             UIFactory.SetLayoutElement(button.GameObject, buttonWidth, height, 0, 0);
 
@@ -396,6 +518,8 @@ namespace lstwoMODS_Core
 
             var keybinder = input.GameObject.AddComponent<InputFieldKeybinder>();
             keybinder.input = input;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
 
             return new(_label, input);
         }
@@ -441,7 +565,68 @@ namespace lstwoMODS_Core
             dropdown.image.sprite = RoundedRect;
             UIFactory.SetLayoutElement(obj, 25, 25, 9999);
 
+            var keybinder = dropdown.gameObject.AddComponent<DropdownKeybinder>();
+            keybinder.dropdown = dropdown;
+            keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
+            keybinder.LoadKeybinds();
+
             return dropdown;
+        }
+
+        /// <summary>
+        /// Color for regular buttons
+        /// </summary>
+        public static Color ButtonColor { get; private set; } = new Color(0.22f, 0.25f, 0.31f);
+
+        /// <summary>
+        /// Color for tab buttons
+        /// </summary>
+        public static Color ButtonColor2 { get; private set; } = new Color(.063f, .094f, .129f);
+
+        /// <summary>
+        /// Color for special buttons
+        /// </summary>
+        public static Color ButtonColor4 { get; private set; } = new Color(0.15f, 0.38f, 0.55f);
+
+        public static Color BGColor1 { get; private set; } = new Color(.129f, .145f, .176f);
+        public static Color BGColor2 { get; private set; } = new Color(.114f, .129f, .161f);
+
+        public static Color TabMenuBG { get; private set; } = new Color(.102f, .157f, .216f);
+        public static Color HacksMenuBG { get; private set; } = new Color(.095f, .108f, .133f);
+
+        public static readonly ColorTheme originalTheme = new()
+        {
+            ButtonColor = new Color(0.22f, 0.25f, 0.31f),
+            ButtonColor2 = new Color(.063f, .094f, .129f),
+            ButtonColor4 = new Color(0.15f, 0.38f, 0.55f),
+            BGColor1 = new Color(.129f, .145f, .176f),
+            BGColor2 = new Color(.114f, .129f, .161f),
+            TabMenuBG = new Color(.102f, .157f, .216f),
+            HacksMenuBG = new Color(.095f, .108f, .133f)
+        };
+
+        public struct ColorTheme
+        {
+            /// <summary>
+            /// Color for regular buttons
+            /// </summary>
+            public Color ButtonColor;
+
+            /// <summary>
+            /// Color for tab buttons
+            /// </summary>
+            public Color ButtonColor2;
+
+            /// <summary>
+            /// Color for special buttons
+            /// </summary>
+            public Color ButtonColor4;
+
+            public Color BGColor1;
+            public Color BGColor2;
+
+            public Color TabMenuBG;
+            public Color HacksMenuBG;
         }
     }
 }

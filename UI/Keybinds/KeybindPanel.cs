@@ -124,6 +124,11 @@ namespace lstwoMODS_Core.UI.Keybinds
             SetDefaultSizeAndPosition();
             SetActive(active);
             Plugin.MainPanel.SetActive(!active);
+
+            if(!active)
+            {
+                KeybindManager.SaveAllKeybinds();
+            }
         }
 
         protected override void OnClosePanelClicked()

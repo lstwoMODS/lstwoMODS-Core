@@ -92,14 +92,14 @@ namespace lstwoMODS_Core.Keybinds
 
             public override void RefreshScrollItem()
             {
-                if(!primaryKey.HasValue)
-                {
-                    return;
-                }
-
                 slider.maxValue = ((SliderKeybinder)keybinder).slider.maxValue;
                 slider.minValue = ((SliderKeybinder)keybinder).slider.minValue;
                 slider.value = value;
+
+                if (!primaryKey.HasValue)
+                {
+                    return;
+                }
 
                 var _text = "";
                 secondaryKeys.ForEach(key => _text += key.ToString() + " + ");
@@ -129,6 +129,16 @@ namespace lstwoMODS_Core.Keybinds
                 _text += primaryKey.ToString();
 
                 text.text = _text;
+            }
+
+            public override string[] SerializeData()
+            {
+                return new string[] { value.ToString() };
+            }
+
+            public override void DeserializeData(string[] data)
+            {
+                value = float.Parse(data[0]);
             }
         }
     }

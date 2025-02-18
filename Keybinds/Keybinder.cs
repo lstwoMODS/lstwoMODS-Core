@@ -15,6 +15,8 @@ namespace lstwoMODS_Core.Keybinds
         /// </summary>
         public List<Keybind> keybinds = new();
 
+        public string keybinderID;
+
         public void OnPointerClick(PointerEventData eventData)
         {
             if(eventData.button == PointerEventData.InputButton.Right)
@@ -33,10 +35,26 @@ namespace lstwoMODS_Core.Keybinds
         }
 
         /// <summary>
-        /// Use this to create a keybind
+        /// Use this to create a keybind instance
         /// </summary>
         /// <returns>The new empty keybind</returns>
         public abstract Keybind CreateKeybind();
+
+        public virtual void LoadKeybinds()
+        {
+            if (!KeybindManager.serializableKeybinders.TryGetValue(keybinderID, out var serializableKeybinds))
+            {
+                return;
+            }
+
+            foreach (var serializableKeybind in serializableKeybinds)
+            {
+                var keybind = CreateKeybind();
+                keybind.primaryKey = serializableKeybind.primaryKey;
+                keybind.secondaryKeys = serializableKeybind.secondaryKeys.ToList();
+                keybind.DeserializeData(serializableKeybind.data);
+            }
+        }
 
         public abstract class Keybind
         {
@@ -50,10 +68,7 @@ namespace lstwoMODS_Core.Keybinds
                 KeybindManager.AddKeybind(this);
             }
 
-            /// <summary>
-            /// Checks if this Keybind is being pressed.
-            /// </summary>
-            /// <returns></returns>
+            /// <returns>Whether the keybind is currently being pressed this frame.</returns>
             public virtual bool IsPressed()
             {
                 if(!this.primaryKey.HasValue)
@@ -161,6 +176,18 @@ namespace lstwoMODS_Core.Keybinds
             /// Used to refresh the keybind item in the Keybind Panel's scroll view. Use this to set the keys in your item to match the keybind's.
             /// </summary>
             public abstract void RefreshScrollItem();
+
+            /// <summary>
+            /// Used for saving the keybinds data such as: text for input field, index for dropdown, etc.
+            /// </summary>
+            /// <returns>Additional data for the keybind to store</returns>
+            public abstract string[] SerializeData();
+
+            /// <summary>
+            /// Used to load serialized data back into the keybind.
+            /// </summary>
+            /// <param name="data">The data serialized in SerializeData method</param>
+            public abstract void DeserializeData(string[] data);
         }
     }
 }
