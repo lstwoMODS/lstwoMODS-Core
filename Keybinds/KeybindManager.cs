@@ -74,7 +74,7 @@ namespace lstwoMODS_Core.Keybinds
             ConvertAllKeybindsToSerializable();
 
             var json = JsonConvert.SerializeObject(serializableKeybinders, Formatting.None);
-            var folderPath = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\lstwoMODS";
+            var folderPath = @$"{AppDomain.CurrentDomain.BaseDirectory}\lstwoMODS";
 
             if(!Directory.Exists(folderPath))
             {
@@ -87,7 +87,7 @@ namespace lstwoMODS_Core.Keybinds
 
         public static void LoadAllKeybinds()
         {
-            var folderPath = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\lstwoMODS";
+            var folderPath = @$"{AppDomain.CurrentDomain.BaseDirectory}\lstwoMODS";
             var filePath = $@"{folderPath}\keybinds.json";
 
             if(!Directory.Exists(folderPath) || !File.Exists(filePath))
