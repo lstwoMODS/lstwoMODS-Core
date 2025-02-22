@@ -12,7 +12,11 @@ Requires [Cinematic Unity Explorer](https://github.com/originalnicodr/CinematicU
 > [!NOTE]
 > lstwoMODS only supports BepInEx 5.X for Mono so far
 
-# Installation
+# Automatic Installation
+
+You can use the installer [here](https://github.com/lstwoMODS/lstwoMODSInstaller) to install lstwoMODS Core and mod packs automatically
+
+# Manual Installation
 
 1. Install BepInEx 5.X
    
