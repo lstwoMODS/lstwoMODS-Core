@@ -47,8 +47,9 @@ namespace lstwoMODS_Core.UI.TabMenus
         {
             var btn = UIFactory.CreateButton(root, Name, "<b>" + Name + "</b>", HacksUIHelper.ButtonColor2);
             btn.OnClick = () => SetTabActive(true);
+            btn.ButtonText.font = HacksUIHelper.Font;
             btn.GameObject.GetComponent<Image>().sprite = HacksUIHelper.RoundedRect;
-            UIFactory.SetLayoutElement(btn.GameObject, 224, 32, 0, 0);
+            UIFactory.SetLayoutElement(btn.GameObject, 224, 36, 0, 0);
 
             return btn.GameObject;
         }

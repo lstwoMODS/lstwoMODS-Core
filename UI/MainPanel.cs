@@ -1,5 +1,6 @@
 ﻿using lstwoMODS_Core.UI.TabMenus;
 using UnityEngine;
+using UnityEngine.UI;
 using UniverseLib.UI;
 using UniverseLib.UI.Panels;
 
@@ -24,6 +25,11 @@ namespace lstwoMODS_Core.UI
 
         protected override void ConstructPanelContent()
         {
+            var rootImage = UIRoot.GetComponent<Image>();
+            rootImage.type = Image.Type.Sliced;
+            rootImage.sprite = HacksUIHelper.RoundedRect;
+            UIRoot.AddComponent<Mask>();
+            
             var ui = new HacksUIHelper(ContentRoot);
 
             var horizontalGroup = ui.CreateHorizontalGroup("horizontalGroup", true, true, true, true);

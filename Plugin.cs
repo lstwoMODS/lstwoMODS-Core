@@ -35,6 +35,7 @@ namespace lstwoMODS_Core
 
         // INSTANCES
         public static Plugin Instance { get; private set; }
+        public static AssetUtils AssetUtils { get; set; }
 
         public static UIBase UiBase { get; private set; }
         public static MainPanel MainPanel { get; private set; }
@@ -53,7 +54,19 @@ namespace lstwoMODS_Core
         private void Awake()
         {
             Instance = this;
-            AssetBundle = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "lstwo.lstwomods.assets"));
+            
+            AssetUtils = new();
+            AssetUtils.AssetBundles = new()
+            {
+                new("lstwoMODS_Core.Resources.assets.6000.bundle", new("6000.0.23")),
+                new("lstwoMODS_Core.Resources.assets.2020.bundle", new("2020.3.28")),
+                new("lstwoMODS_Core.Resources.assets.2017.bundle", new("2017.1.0")),
+                new("lstwoMODS_Core.Resources.assets.5.6.bundle", new("5.6.0")),
+                new("lstwoMODS_Core.Resources.assets.5.3.4.bundle", new("5.3.4")),
+                new("lstwoMODS_Core.Resources.assets.5.2.5.bundle", new("5.2.5")),
+            };
+            
+            AssetBundle = AssetUtils.LoadCompatibleAssetBundle();
             KeybindManager = gameObject.AddComponent<KeybindManager>();
 
             HacksUIHelper.LoadConfig();

@@ -19,7 +19,7 @@ namespace lstwoMODS_Core.UI.TabMenus
         {
             base.ConstructUI(root);
 
-            bool b = true;
+            var b = true;
 
             foreach (var hack in Hacks)
             {
@@ -35,12 +35,15 @@ namespace lstwoMODS_Core.UI.TabMenus
                     UIFactory.SetLayoutElement(fullHackRoot);
 
                     var hackBtn = UIFactory.CreateButton(fullHackRoot, hack.Name + " Button", hack.Name, bgColor);
+                    hackBtn.ButtonText.font = HacksUIHelper.Font;
                     hackBtn.OnClick = () =>
                     {
                         newRoot.SetActive(!newRoot.activeSelf);
 
                         if (newRoot.activeSelf)
+                        {
                             hack.RefreshUI();
+                        }
                     };
                     UIFactory.SetLayoutElement(hackBtn.GameObject, 0, 28, 9999, 0);
 
