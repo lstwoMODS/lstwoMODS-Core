@@ -14,7 +14,7 @@ namespace lstwoMODS_Core
     {
         public static Sprite RoundedRect { get; private set; }
 
-        public static Font Font => interFont;
+        //public static Font Font => interFont;
 
         private static Font interFont;
 
@@ -125,8 +125,8 @@ namespace lstwoMODS_Core
 
             var inputFieldRef = UIFactory.CreateInputField(group, name, placeholder);
             inputFieldRef.Component.image.sprite = RoundedRect;
-            inputFieldRef.Component.textComponent.font = Font;
-            inputFieldRef.PlaceholderText.font = Font;
+            //inputFieldRef.Component.textComponent.font = Font;
+            //inputFieldRef.PlaceholderText.font = Font;
 
             UIFactory.SetLayoutElement(inputFieldRef.GameObject, 256, 32, 0, 0);
 
@@ -145,8 +145,8 @@ namespace lstwoMODS_Core
 
             var inputFieldRef = UIFactory.CreateInputField(group, name, placeholder);
             inputFieldRef.Component.image.sprite = RoundedRect;
-            inputFieldRef.Component.textComponent.font = Font;
-            inputFieldRef.PlaceholderText.font = Font;
+            //inputFieldRef.Component.textComponent.font = Font;
+            //inputFieldRef.PlaceholderText.font = Font;
 
             UIFactory.SetLayoutElement(inputFieldRef.GameObject, inputWidth, height, 0, 0);
 
@@ -184,7 +184,7 @@ namespace lstwoMODS_Core
             UIFactory.SetLayoutElement(spacer, 4);
 
             var text2 = UIFactory.CreateLabel(group, name, text, alignment, color.Value, richTextSupport, fontSize);
-            text2.font = Font;
+            //text2.font = Font;
             UIFactory.SetLayoutElement(text2.gameObject, 256 * 3, 32, 9999);
             return text2;
         }
@@ -227,7 +227,7 @@ namespace lstwoMODS_Core
 
             var gameObject = UIFactory.CreateToggle(group, name, out var toggle, out var text, bgColor, checkWidth, checkHeight);
             text.text = label;
-            text.font = Font;
+            //text.font = Font;
             toggle.isOn = defaultState;
             toggle.onValueChanged.AddListener(onValueChanged);
 
@@ -260,7 +260,7 @@ namespace lstwoMODS_Core
             button.OnClick = onClick;
             button.Component.image = button.Transform.GetComponent<Image>();
             button.Component.image.sprite = RoundedRect;
-            button.ButtonText.font = Font;
+            //button.ButtonText.font = Font;
 
             var buttonKeybinder = button.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder.button = button;
@@ -295,8 +295,8 @@ namespace lstwoMODS_Core
 
             var input = UIFactory.CreateInputField(group, inputPlaceHolder + " Input", " " + inputPlaceHolder);
             input.Component.image.sprite = RoundedRect;
-            input.Component.textComponent.font = Font;
-            input.PlaceholderText.font = Font;
+            //input.Component.textComponent.font = Font;
+            //input.PlaceholderText.font = Font;
 
             UIFactory.SetLayoutElement(input.GameObject, inputWidth, height, 0, 0);
 
@@ -317,7 +317,7 @@ namespace lstwoMODS_Core
             keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
             keybinder.LoadKeybinds();
 
-            return new(_label, input, button);
+            return new(_label, input, button, group);
         }
 
         public class LIBTrio
@@ -325,12 +325,14 @@ namespace lstwoMODS_Core
             public Text Label { get; private set; }
             public InputFieldRef Input { get; private set; }
             public ButtonRef Button { get; private set; }
+            public GameObject Root { get; private set; }
 
-            public LIBTrio(Text label, InputFieldRef input, ButtonRef button)
+            public LIBTrio(Text label, InputFieldRef input, ButtonRef button, GameObject root)
             {
                 Label = label;
                 Input = input;
                 Button = button;
+                Root = root;
             }
         }
 
@@ -356,8 +358,8 @@ namespace lstwoMODS_Core
 
             var dropdownObj = UIFactory.CreateDropdown(group, "Dropdown", out var dropdown, defaultItemText, itemFontSize, onValueChanged);
             dropdown.image.sprite = RoundedRect;
-            dropdown.captionText.font = Font;
-            dropdown.itemText.font = Font;
+            //dropdown.captionText.font = Font;
+            //dropdown.itemText.font = Font;
             UIFactory.SetLayoutElement(dropdownObj, dropdownWidth, height, 0, 0);
 
             var spacer2 = UIFactory.CreateUIObject("spacer2", group);
@@ -367,11 +369,11 @@ namespace lstwoMODS_Core
             button.OnClick = onClick;
             button.Component.image = button.Transform.GetComponent<UnityEngine.UI.Image>();
             button.Component.image.sprite = RoundedRect;
-            button.ButtonText.font = Font;
+            //button.ButtonText.font = Font;
 
             UIFactory.SetLayoutElement(button.GameObject, buttonWidth, height, 0, 0);
 
-            var ldb = new LDBTrio(_label, dropdown, button);
+            var ldb = new LDBTrio(_label, dropdown, button, group);
 
             var keybinder = _label.gameObject.AddComponent<LDBKeybinder>();
             keybinder.LDB = ldb;
@@ -386,12 +388,14 @@ namespace lstwoMODS_Core
             public Text Label { get; private set; }
             public Dropdown Dropdown { get; private set; }
             public ButtonRef Button { get; private set; }
+            public GameObject Root { get; private set; }
 
-            public LDBTrio(Text label, Dropdown dropdown, ButtonRef button)
+            public LDBTrio(Text label, Dropdown dropdown, ButtonRef button, GameObject root)
             {
                 Label = label;
                 Dropdown = dropdown;
                 Button = button;
+                Root = root;
             }
         }
 
@@ -421,7 +425,7 @@ namespace lstwoMODS_Core
             button1.OnClick = onClick1;
             button1.Component.image = button1.Transform.GetComponent<Image>();
             button1.Component.image.sprite = RoundedRect;
-            button1.ButtonText.font = Font;
+            //button1.ButtonText.font = Font;
 
             var buttonKeybinder = button1.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder.button = button1;
@@ -437,7 +441,7 @@ namespace lstwoMODS_Core
             button2.OnClick = onClick2;
             button2.Component.image = button2.Transform.GetComponent<Image>();
             button2.Component.image.sprite = RoundedRect;
-            button2.ButtonText.font = Font;
+            //button2.ButtonText.font = Font;
 
             var buttonKeybinder2 = button2.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder2.button = button2;
@@ -446,7 +450,7 @@ namespace lstwoMODS_Core
 
             UIFactory.SetLayoutElement(button2.GameObject, button2Width, height, 0, 0);
 
-            return new(_label, button1, button2);
+            return new(_label, button1, button2, group);
         }
 
         public class LBBTrio
@@ -454,12 +458,14 @@ namespace lstwoMODS_Core
             public Text Label { get; private set; }
             public ButtonRef Button { get; private set; }
             public ButtonRef Button2 { get; private set; }
+            public GameObject Root { get; private set; }
 
-            public LBBTrio(Text label, ButtonRef button, ButtonRef button2)
+            public LBBTrio(Text label, ButtonRef button, ButtonRef button2, GameObject root)
             {
                 Label = label;
                 Button = button;
                 Button2 = button2;
+                Root = root;
             }
         }
 
@@ -487,7 +493,7 @@ namespace lstwoMODS_Core
             button.OnClick = onClick;
             button.Component.image = button.Transform.GetComponent<Image>();
             button.Component.image.sprite = RoundedRect;
-            button.ButtonText.font = Font;
+            //button.ButtonText.font = Font;
 
             var buttonKeybinder = button.GameObject.AddComponent<ButtonKeybinder>();
             buttonKeybinder.button = button;
@@ -496,18 +502,20 @@ namespace lstwoMODS_Core
 
             UIFactory.SetLayoutElement(button.GameObject, buttonWidth, height, 0, 0);
 
-            return new(_label, button);
+            return new(_label, button, group);
         }
 
         public class LBDuo
         {
             public Text Label { get; private set; }
             public ButtonRef Button { get; private set; }
+            public GameObject Root { get; private set; }
 
-            public LBDuo(Text label, ButtonRef button)
+            public LBDuo(Text label, ButtonRef button, GameObject root)
             {
                 Label = label;
                 Button = button;
+                Root = root;
             }
         }
 
@@ -533,7 +541,7 @@ namespace lstwoMODS_Core
 
             var input = UIFactory.CreateInputField(group, inputName, " " + inputPlaceholder);
             input.Component.image.sprite = RoundedRect;
-            input.Component.textComponent.font = Font;
+            //input.Component.textComponent.font = Font;
 
             UIFactory.SetLayoutElement(input.GameObject, inputWidth, height, 0, 0);
 
@@ -542,18 +550,20 @@ namespace lstwoMODS_Core
             keybinder.keybinderID = $"{new System.Diagnostics.StackTrace().GetFrame(1)?.GetMethod()?.DeclaringType?.FullName}::{name}";
             keybinder.LoadKeybinds();
 
-            return new(_label, input);
+            return new(_label, input, group);
         }
 
         public class LIDuo
         {
             public Text Label { get; private set; }
             public InputFieldRef Input { get; private set; }
+            public GameObject Root { get; private set; }
 
-            public LIDuo(Text label, InputFieldRef input)
+            public LIDuo(Text label, InputFieldRef input, GameObject root)
             {
                 Label = label;
                 Input = input;
+                Root = root;
             }
         }
 
@@ -584,8 +594,8 @@ namespace lstwoMODS_Core
         {
             var obj = UIFactory.CreateDropdown(root, name, out var dropdown, defaultItemText, itemFontSize, onValueChanged, defaultOptions);
             dropdown.image.sprite = RoundedRect;
-            dropdown.captionText.font = Font;
-            dropdown.itemText.font = Font;
+            //dropdown.captionText.font = Font;
+            //dropdown.itemText.font = Font;
             UIFactory.SetLayoutElement(obj, 25, 25, 9999);
 
             var keybinder = dropdown.gameObject.AddComponent<DropdownKeybinder>();

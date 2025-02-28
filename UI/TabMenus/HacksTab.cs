@@ -6,11 +6,11 @@ using UniverseLib.UI;
 
 namespace lstwoMODS_Core.UI.TabMenus
 {
-    public class HacksTab : BaseTab
+    public class HacksTab : TabWithIcon
     {
         public List<BaseHack> Hacks = new();
 
-        public HacksTab(string name = "Mods")
+        public HacksTab(Sprite icon, string name = "Mods") : base(icon)
         {
             Name = name;
         }
@@ -35,7 +35,7 @@ namespace lstwoMODS_Core.UI.TabMenus
                     UIFactory.SetLayoutElement(fullHackRoot);
 
                     var hackBtn = UIFactory.CreateButton(fullHackRoot, hack.Name + " Button", hack.Name, bgColor);
-                    hackBtn.ButtonText.font = HacksUIHelper.Font;
+                    //hackBtn.ButtonText.font = HacksUIHelper.Font;
                     hackBtn.OnClick = () =>
                     {
                         newRoot.SetActive(!newRoot.activeSelf);

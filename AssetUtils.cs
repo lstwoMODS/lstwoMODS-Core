@@ -18,12 +18,6 @@ public class AssetUtils
         var compatibleBundles = from assetBundle in AssetBundles where assetBundle.CheckCompatible(currentVersion) select assetBundle;
         var compatibleBundle = compatibleBundles.FirstOrDefault();
         var bundle = compatibleBundle?.Load();
-        
-        Debug.Log(string.Join(", ", AssetBundles));
-        Debug.Log(currentVersion);
-        Debug.Log(string.Join(", ", compatibleBundles));
-        Debug.Log(compatibleBundle);
-        Debug.Log(bundle);
             
         return bundle;
     }

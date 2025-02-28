@@ -21,16 +21,27 @@ public class TabWithIcon : BaseTab
     {
         var btn = UIFactory.CreateButton(root, Name, "<b>" + Name + "</b>", HacksUIHelper.ButtonColor2);
         btn.OnClick = () => SetTabActive(true);
-        btn.ButtonText.font = HacksUIHelper.Font;
+        //btn.ButtonText.font = HacksUIHelper.Font;
         btn.GameObject.GetComponent<Image>().sprite = HacksUIHelper.RoundedRect;
         UIFactory.SetLayoutElement(btn.GameObject, 224, 36, 0, 0);
 
-        var imageObj = UIFactory.CreateUIObject("icon", btn.GameObject);
+        if (icon == null)
+        {
+            return btn.GameObject;
+        }
+        
+        
+        var imageObj = new GameObject("icon", typeof(RectTransform));
+        imageObj.transform.SetParent(btn.GameObject.transform);
+        imageObj.transform.localPosition = Vector3.zero;
+        
         var imageRect = imageObj.GetComponent<RectTransform>();
         imageRect.anchorMin = new(0, 0.5f);
         imageRect.anchorMax = new(0, 0.5f);
         imageRect.pivot = new(0.5f, 0.5f);
         imageRect.anchoredPosition = new(18, 0);
+        imageRect.sizeDelta = new(24, 24);
+        
         var image = imageObj.AddComponent<Image>();
         image.sprite = icon;
 
