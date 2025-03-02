@@ -14,6 +14,11 @@ namespace lstwoMODS_Core.UI.TabMenus
         {
             Name = name;
         }
+        
+        public HacksTab(string name = "Mods") : base(null)
+        {
+            Name = name;
+        }
 
         public override void ConstructUI(GameObject root)
         {
