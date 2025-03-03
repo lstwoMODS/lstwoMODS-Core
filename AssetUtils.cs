@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace lstwoMODS_Core;
@@ -17,7 +19,7 @@ public class AssetUtils
 
         var compatibleBundles = from assetBundle in AssetBundles where assetBundle.CheckCompatible(currentVersion) select assetBundle;
         var compatibleBundle = compatibleBundles.FirstOrDefault();
-        var bundle = compatibleBundle?.Load();
+        var bundle = compatibleBundle?.Load(new StackTrace().GetFrame(1).GetMethod().GetType().Assembly);
             
         return bundle;
     }
@@ -46,9 +48,9 @@ public class UnitySpecificAssetBundle
         };
     }
 
-    public AssetBundle Load()
+    public AssetBundle Load(Assembly assembly)
     {
-        return AssetBundle.LoadFromMemory(ReadFully(typeof(Plugin).Assembly.GetManifestResourceStream(AssetBundleResourceName)));
+        return AssetBundle.LoadFromMemory(ReadFully(assembly.GetManifestResourceStream(AssetBundleResourceName)));
     }
     
     private static byte[] ReadFully(Stream input)
