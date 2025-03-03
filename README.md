@@ -34,3 +34,7 @@ You can use the installer [here](https://github.com/lstwoMODS/lstwoMODSInstaller
    Get an lstwoMODS modpack (eg. [lstwoMODS Wobbly Life](https://github.com/lstwo/lstwoMODS)), download it and it's requirements and put the files into the `<Game Folder>\BepInEx\plugins\` once more.
 
 4. Boot up your game
+
+---
+
+Join my discord to get support or just chat: https://discord.gg/cKWcxccQXU
