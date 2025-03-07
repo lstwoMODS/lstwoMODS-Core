@@ -24,7 +24,7 @@ You can use the installer [here](https://github.com/lstwoMODS/lstwoMODSInstaller
 
 2. Install lstwoMODS and dependencies
 
-   Download the files for lstwoMODS Core (`lstwoMODS_Core.dll`, `lstwo.lstwomods.assets`) and Cinematic Unity Explorer (`CinematicUnityExplorer.BepInEx5.Mono.zip`).
+   Download the files for lstwoMODS Core (`lstwoMODS_Core.dll`) and Cinematic Unity Explorer (`CinematicUnityExplorer.BepInEx5.Mono.zip`).
    Then unzip the `CinematicUnityExplorer.BepInEx5.Mono.zip` file and find the dll files inside.
 
    Take all files and put them into the `<Game Folder>\BepInEx\plugins\` folder. (If it doesn't exist boot up the game or create it yourself)
