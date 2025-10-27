@@ -3,30 +3,30 @@ using UnityEngine;
 
 namespace lstwoMODS_Core.Hacks
 {
-    public abstract class BaseHack
+    public abstract class BaseMod
     {
         /// <summary>
-        /// The name showed on the Hack button.
+        /// The name shown on the Hack button.
         /// </summary>
         public abstract string Name { get; }
 
         /// <summary>
-        /// Unused for now.
+        /// Text shown as tooltip when hovering
         /// </summary>
         public abstract string Description { get; }
 
         /// <summary>
         /// The tab your hack should get added to.
         /// </summary>
-        public abstract HacksTab HacksTab { get; }
+        public abstract ModsTab ModsTab { get; }
 
-        public BaseHack()
+        public BaseMod()
         {
-            Plugin.Hacks.Add(this);
+            Plugin.Mods.Add(this);
 
-            if(HacksTab != null)
+            if(ModsTab != null)
             {
-                HacksTab.Hacks.Add(this);
+                ModsTab.Mods.Add(this);
             }
         }
 
@@ -34,7 +34,7 @@ namespace lstwoMODS_Core.Hacks
         /// Called when UI gets constructed. Use this to create your UI.
         /// </summary>
         /// <param name="root">The root layout group. Place your objects as children of this object.</param>
-        public abstract void ConstructUI(GameObject root);
+        public abstract void RenderUI();
 
         /// <summary>
         /// Called every frame. Use for special mods that need this.

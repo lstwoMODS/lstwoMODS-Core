@@ -1,12 +1,6 @@
 ﻿using lstwoMODS_Core.Keybinds;
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
 using UniverseLib.UI;
 using UniverseLib.UI.Panels;
 
@@ -25,7 +19,7 @@ namespace lstwoMODS_Core.UI.Keybinds
         public override Vector2 DefaultAnchorMin => new(.5f, .5f);
         public override Vector2 DefaultAnchorMax => new(.5f, .5f);
 
-        public override Vector2 DefaultPosition => new(-MinWidth / 2, MinHeight / 2);
+        public override Vector2 DefaultPosition => new(MinWidth + 10f, MinHeight / 2f);
 
         public override bool CanDragAndResize => false;
 
@@ -96,13 +90,13 @@ namespace lstwoMODS_Core.UI.Keybinds
 
             UIFactory.SetLayoutElement(UIFactory.CreateUIObject("spacer", buttonGroup), 6, 0, 0, 9999);
 
-            var addButton = UIFactory.CreateButton(buttonGroup, "addButton", "<b>+</b>", HacksUIHelper.ButtonColor);
+            var addButton = UIFactory.CreateButton(buttonGroup, "addButton", "<b>Add keybind</b>", HacksUIHelper.ButtonColor);
             addButton.OnClick = AddKeybind;
             UIFactory.SetLayoutElement(addButton.GameObject, 294, 48, 9999, 0);
 
             UIFactory.SetLayoutElement(UIFactory.CreateUIObject("spacer", buttonGroup), 6, 0, 0, 9999);
 
-            var removeButton = UIFactory.CreateButton(buttonGroup, "removeButton", "<b>-</b>", HacksUIHelper.ButtonColor);
+            var removeButton = UIFactory.CreateButton(buttonGroup, "removeButton", "<b>Remove keybind</b>", HacksUIHelper.ButtonColor);
             removeButton.OnClick = RemoveKeybind;
             UIFactory.SetLayoutElement(removeButton.GameObject, 294, 48, 9999, 0);
 

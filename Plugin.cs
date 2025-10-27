@@ -1,182 +1,202 @@
 ﻿using BepInEx;
 using UnityEngine;
-using UniverseLib.UI;
-using UniverseLib;
-using UniverseLib.Config;
 using lstwoMODS_Core.UI;
 using System.Collections.Generic;
 using lstwoMODS_Core.UI.TabMenus;
-using lstwoMODS_Core.Hacks;
 using System.Reflection;
 using System.Collections;
 using System;
 using BepInEx.Logging;
-using lstwoMODS_Core.UI.Keybinds;
-using lstwoMODS_Core.Keybinds;
 using BepInEx.Configuration;
 using System.Linq;
 using System.IO;
+using ImGuiNET;
+using lstwoMODS_Core.Hacks;
+using UImGui.Assets;
 
-namespace lstwoMODS_Core
+namespace lstwoMODS_Core;
+
+[BepInPlugin(GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+public class Plugin : BaseUnityPlugin
 {
-    [BepInPlugin(GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
-    public class Plugin : BaseUnityPlugin
-    {
-        public const string GUID = "net.lstwo.lstwomods_core";
+    public const string GUID = "net.lstwo.lstwomods_core";
 
-        // ASSETS
-        public static AssetBundle AssetBundle { get; private set; }
+    public static bool DevMode = false;
 
-        // QUICK ACCESS
-        public const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic;
+    // ASSETS
+    public static AssetBundle AssetBundle { get; private set; }
+    //public static AssetBundle LstwoModsUImGuiBundle;
+    public static AssetBundle UImGuiBundle;
+
+    // QUICK ACCESS
+    public const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
         
-        public static ManualLogSource LogSource { get => Instance.Logger; }
-        public static ConfigFile ConfigFile { get => Instance.Config; }
+    public static ManualLogSource LogSource => Instance.Logger;
+    public static ConfigFile ConfigFile => Instance.Config;
 
-        // INSTANCES
-        public static Plugin Instance { get; private set; }
-        public static AssetUtils AssetUtils { get; set; }
+    // INSTANCES
+    public static Plugin Instance { get; private set; }
+    public static AssetUtils AssetUtils { get; set; }
 
-        public static UIBase UiBase { get; private set; }
-        public static MainPanel MainPanel { get; private set; }
-        public static KeybindPanel KeybindPanel { get; private set; }
+    public static UImGui.UImGui ImGuiRenderer;
+    //public static MainPanel MainPanel { get; private set; }
+    //public static KeybindPanel KeybindPanel { get; private set; }
 
-        public static List<BaseTab> TabMenus { get; private set; } = new();
-        public static List<BaseHack> Hacks { get; private set; } = new();
+    public static List<BaseTab> TabMenus { get; private set; } = new();
+    public static List<BaseMod> Mods { get; private set; } = new();
 
-        // OTHER FEATURES
-        public static KeybindManager KeybindManager { get; private set; }
+    public static SettingsTab SettingsTab;
 
-        // UI TOGGLING
-        public static Action<bool> OnUIToggle { get; set; }
-        public static List<Func<bool>> UIConditions { get; set; } = new();
+    //public static ProfilesTab ProfilesTab { get; private set; }
 
-        private void Awake()
-        {
-            Instance = this;
+    // OTHER FEATURES
+    //public static KeybindManager KeybindManager { get; private set; }
+
+    // UI TOGGLING
+    public static Action<bool> OnUIToggle { get; set; }
+    public static List<Func<bool>> UIConditions { get; set; } = new();
+        
+    // CONFIG
+    public static ConfigEntry<float> UIScaleFactor;
+
+    public static Action OnUIInitialize;
+
+    private static FieldInfo uImGuiCameraField;
+        
+
+    private void Awake()
+    {
+        Instance = this;
+
+        //UIScaleFactor = Config.Bind("UI", "Scale Factor", 1f, "Works but may lead to unwanted side effects. Here for accessibility reasons.");
             
-            AssetUtils = new();
-            AssetUtils.AssetBundles = new()
-            {
-                new("lstwoMODS_Core.Resources.assets.6000.bundle", new("6000.0.23")),
-                new("lstwoMODS_Core.Resources.assets.2020.bundle", new("2020.3.28")),
-                new("lstwoMODS_Core.Resources.assets.2017.bundle", new("2017.1.0")),
-                new("lstwoMODS_Core.Resources.assets.5.6.bundle", new("5.6.0")),
-                new("lstwoMODS_Core.Resources.assets.5.3.4.bundle", new("5.3.4")),
-                new("lstwoMODS_Core.Resources.assets.5.2.5.bundle", new("5.2.5")),
-            };
+        /*AssetUtils = new();
+        AssetUtils.AssetBundles = new()
+        {
+            new("lstwoMODS_Core.Resources.assets.6000.bundle", new("6000.0.23")),
+            new("lstwoMODS_Core.Resources.assets.2020.bundle", new("2020.3.28")),
+            new("lstwoMODS_Core.Resources.assets.2017.bundle", new("2017.1.0")),
+            new("lstwoMODS_Core.Resources.assets.5.6.bundle", new("5.6.0")),
+            new("lstwoMODS_Core.Resources.assets.5.3.4.bundle", new("5.3.4")),
+            new("lstwoMODS_Core.Resources.assets.5.2.5.bundle", new("5.2.5")),
+        };
+
+        AssetBundle = AssetUtils.LoadCompatibleAssetBundle(GetType().Assembly);*/
+        //KeybindManager = gameObject.AddComponent<KeybindManager>();
             
-            AssetBundle = AssetUtils.LoadCompatibleAssetBundle();
-            KeybindManager = gameObject.AddComponent<KeybindManager>();
+        //HacksUIHelper.LoadConfig();
+        //KeybindManager.LoadAllKeybinds();
 
-            HacksUIHelper.LoadConfig();
-            KeybindManager.LoadAllKeybinds();
+        var assetBundles = Path.GetDirectoryName(Assembly.GetAssembly(typeof(ImGui)).Location) + "/assets/";
+        UImGuiBundle = UnityEngine.AssetBundle.LoadFromFile(assetBundles + "uimgui");
+        //LstwoModsUImGuiBundle = UnityEngine.AssetBundle.LoadFromFile(assetBundles + "lstwomods_uimgui");
 
-            Logger.LogInfo($"Plugin {GUID} is loaded!");
+        OnUIInitialize += Window.Initialize;
+
+        LoadStyle();
+
+        SettingsTab = new();
+
+        Logger.LogInfo($"Plugin {GUID} is loaded!");
+    }
+
+    private static void LoadStyle()
+    {
+        var folderPath = @$"{AppDomain.CurrentDomain.BaseDirectory}\lstwoMODS\style";
+        var styleAsset = UImGuiBundle.LoadAsset<StyleAsset>("lstwoMODS uImGui Style");
+
+        if (!Directory.Exists(folderPath))
+        {
+            Directory.CreateDirectory(folderPath);
         }
 
-        private void Start()
+        var styleFilePath = $@"{folderPath}\style.json";
+
+        if (File.Exists(styleFilePath))
         {
-            InitMods();
-            InitUI();
+            StyleManager.LoadFromJson(styleAsset, styleFilePath);
         }
 
-        public static void InitMods()
-        {
-            InitChildClasses<BaseHack>();
-        }
+        var templateStylePath = $@"{folderPath}\template.json";
+        
+        StyleManager.SaveToJson(styleAsset, templateStylePath);
+        
+        File.WriteAllText($@"{folderPath}\README.txt", 
+            "The template.json contains the default style parameters from lstwoMODS " +
+            "and will get automatically updated with each launch. " +
+            "Duplicate the file to change the parameters. " +
+            "The mod will look for a style.json file in this folder on every launch.");
+    }
 
-        public static void InitUI()
+    private void Start()
+    {
+        InitMods();
+    }
+
+    public static void InitMods()
+    {
+        InitChildClasses<BaseMod>();
+    }
+
+    public static void InitChildClasses<T>()
+    {
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        var types = new List<Type>();
+
+        foreach(var assembly in assemblies)
         {
-            UniverseLibConfig config = new()
+            try
             {
-                Disable_EventSystem_Override = false,
-                Force_Unlock_Mouse = true
-            };
-
-            Universe.Init(1f, () =>
-            {
-                UiBase = UniversalUI.RegisterUI("lstwo.NotAzza", null);
-
-                MainPanel = new(UiBase);
-                KeybindPanel = new(UiBase);
-
-                KeybindPanel.Enabled = false;
-                UiBase.Enabled = false;
-            }, null, config);
-        }
-
-        public static void InitChildClasses<T>()
-        {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var types = new List<Type>();
-
-            foreach(var assembly in assemblies)
-            {
-                try
-                {
-                    types.AddRange(assembly.GetTypes());
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"Error getting types from assembly '{assembly.FullName}': {ex.Message} {ex.StackTrace}");
-                }
+                types.AddRange(assembly.GetTypes());
             }
-
-            foreach (var type in types)
+            catch (Exception ex)
             {
-                try
-                {
-                    if(type.IsSubclassOf(typeof(T)) && !type.IsAbstract)
-                    {
-                        Activator.CreateInstance(type);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"Error evaluating / initializing type '{type.FullName}': {ex.Message} {ex.StackTrace}");
-                }
+                Debug.LogWarning($"Error getting types from assembly '{assembly.FullName}': {ex.Message} {ex.StackTrace}");
             }
         }
 
-        public static Coroutine _StartCoroutine(IEnumerator routine)
+        foreach (var type in types)
         {
-            return Instance.StartCoroutine(routine);
-        }
-
-        private void Update()
-        {
-            if(Input.GetKeyDown(KeyCode.F2))
+            try
             {
-                ToggleUI();
-            }
-
-            foreach(var hack in Hacks)
-            {
-                hack.Update();
-            }
-        }
-
-        private void ToggleUI()
-        {
-            foreach (var condition in UIConditions)
-            {
-                if (!condition.Invoke())
+                if(type.IsSubclassOf(typeof(T)) && !type.IsAbstract)
                 {
-                    UiBase.Enabled = false;
-                    return;
+                    Activator.CreateInstance(type);
                 }
             }
-
-            var enabled = !UiBase.Enabled;
-            UiBase.Enabled = enabled;
-
-            if (enabled)
+            catch (Exception ex)
             {
-                MainPanel.Refresh();
+                Debug.LogWarning($"Error evaluating / initializing type '{type.FullName}': {ex.Message} {ex.StackTrace}");
             }
-
-            OnUIToggle?.Invoke(enabled);
         }
+    }
+
+    public static Coroutine _StartCoroutine(IEnumerator routine)
+    {
+        return Instance.StartCoroutine(routine);
+    }
+
+    private void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.F2))
+        {
+            ToggleUI();
+        }
+
+        foreach(var mod in Mods)
+        {
+            mod.Update();
+        }
+    }
+
+    private void ToggleUI()
+    {
+        if (UIConditions.Any(condition => !condition.Invoke()))
+        {
+            Window.Enabled = false;
+            return;
+        }
+
+        Window.Enabled = !Window.Enabled;
     }
 }

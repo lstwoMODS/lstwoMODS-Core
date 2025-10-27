@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <AssemblyName>lstwoMODS_Core</AssemblyName>
     <Description></Description>
     <Version>1.0.0</Version>
@@ -20,23 +20,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-
-	  <Reference Include="CinematicUnityExplorer.BIE5.Mono">
-		  <HintPath>lib\CinematicUnityExplorer.BIE5.Mono.dll</HintPath>
-	  </Reference>
-
-	  <Reference Include="UnityEngine.UI">
-		  <HintPath>lib\UnityEngine.UI.dll</HintPath>
-	  </Reference>
-
-	  <Reference Include="netstandard">
-		  <HintPath>lib\netstandard.dll</HintPath>
-	  </Reference>
 	  
 	  <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+    <PackageReference Include="Costura.Fody" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.6.1" />
     <PackageReference Include="UnityEngine.Modules" Version="2020.3.44" IncludeAssets="compile" />
     <PackageReference Include="UniverseLib.Mono" Version="1.5.1" />
   </ItemGroup>
@@ -46,17 +39,66 @@
   </ItemGroup>
   
   <ItemGroup>
-    <None Remove="Resources\assets.2017.bundle" />
-    <EmbeddedResource Include="Resources\assets.2017.bundle" />
-    <None Remove="Resources\assets.5.6.bundle" />
-    <EmbeddedResource Include="Resources\assets.5.6.bundle" />
-    <None Remove="Resources\assets.6000.0.23.bundle" />
-    <EmbeddedResource Include="Resources\assets.6000.bundle" />
-    <None Remove="Resources\assets.2020.bundle" />
-    <EmbeddedResource Include="Resources\assets.2020.bundle" />
+    
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="UI\Profiles\" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="CinematicUnityExplorer.BIE5.Mono">
+      <HintPath>lib\CinematicUnityExplorer.BIE5.Mono.dll</HintPath>
+    </Reference>
+    <Reference Include="ImGui.NET">
+      <HintPath>lib\ImGui.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="ImGuizmo.NET">
+      <HintPath>lib\ImGuizmo.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="ImNodes.NET">
+      <HintPath>lib\ImNodes.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="ImPlot.NET">
+      <HintPath>lib\ImPlot.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="netstandard">
+      <HintPath>lib\netstandard.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="UImGui">
+      <HintPath>lib\UImGui.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>lib\UnityEngine.UI.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Remove="Keybinds\**" />
+    <Compile Remove="UI\Keybinds\**" />
+    <Compile Remove="HacksUIHelper.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="Keybinds\**" />
+    <None Remove="UI\Keybinds\**" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <None Remove="Resources\assets.5.2.5.bundle" />
     <EmbeddedResource Include="Resources\assets.5.2.5.bundle" />
     <None Remove="Resources\assets.5.3.4.bundle" />
     <EmbeddedResource Include="Resources\assets.5.3.4.bundle" />
+    <None Remove="Resources\assets.5.6.bundle" />
+    <EmbeddedResource Include="Resources\assets.5.6.bundle" />
+    <None Remove="Resources\assets.2017.bundle" />
+    <EmbeddedResource Include="Resources\assets.2017.bundle" />
+    <None Remove="Resources\assets.2020.bundle" />
+    <EmbeddedResource Include="Resources\assets.2020.bundle" />
+    <None Remove="Resources\assets.6000.bundle" />
+    <EmbeddedResource Include="Resources\assets.6000.bundle" />
   </ItemGroup>
 </Project>

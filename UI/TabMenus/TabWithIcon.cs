@@ -12,12 +12,15 @@ public class TabWithIcon : BaseTab
     {
         this.icon = icon;
     }
-    
-    public override void UpdateUI() { }
+
+    public override void RenderUI()
+    {
+        
+    }
 
     public override void RefreshUI() { }
 
-    public override GameObject ConstructTabButton(GameObject root)
+    /*public override GameObject RenderTab(GameObject root)
     {
         var btn = UIFactory.CreateButton(root, Name, "<b>" + Name + "</b>", HacksUIHelper.ButtonColor2);
         btn.OnClick = () => SetTabActive(true);
@@ -46,5 +49,5 @@ public class TabWithIcon : BaseTab
         image.sprite = icon;
 
         return btn.GameObject;
-    }
+    }*/
 }

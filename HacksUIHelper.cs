@@ -103,7 +103,7 @@ namespace lstwoMODS_Core
                 hex = $"#{hex}";
             }
 
-            if (ColorUtility.TryParseHtmlString(hex, out Color color))
+            if (ColorUtility.TryParseHtmlString(hex, out var color))
             {
                 return color;
             }
@@ -222,9 +222,6 @@ namespace lstwoMODS_Core
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
 
-            var spacer = UIFactory.CreateUIObject("spacer", group);
-            UIFactory.SetLayoutElement(spacer, 4);
-
             var gameObject = UIFactory.CreateToggle(group, name, out var toggle, out var text, bgColor, checkWidth, checkHeight);
             text.text = label;
             //text.font = Font;
@@ -286,7 +283,7 @@ namespace lstwoMODS_Core
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
 
-            var _label = UIFactory.CreateLabel(group, label + " Label", " " + label);
+            var _label = UIFactory.CreateLabel(group, label + " Label", label);
 
             UIFactory.SetLayoutElement(_label.gameObject, labelWidth, height);
 
@@ -350,7 +347,7 @@ namespace lstwoMODS_Core
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
 
-            var _label = UIFactory.CreateLabel(group, label + " Label", " " + label);
+            var _label = UIFactory.CreateLabel(group, label + " Label", label);
             UIFactory.SetLayoutElement(_label.gameObject, labelWidth, height);
 
             var spacer1 = UIFactory.CreateUIObject("spacer1", group);
@@ -415,7 +412,7 @@ namespace lstwoMODS_Core
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
 
-            var _label = UIFactory.CreateLabel(group, label + " Label", " " + label);
+            var _label = UIFactory.CreateLabel(group, label + " Label", label);
             UIFactory.SetLayoutElement(_label.gameObject, labelWidth, height);
 
             var spacer1 = UIFactory.CreateUIObject("spacer", group);
@@ -483,7 +480,7 @@ namespace lstwoMODS_Core
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
 
-            var _label = UIFactory.CreateLabel(group, label + " Label", " " + label);
+            var _label = UIFactory.CreateLabel(group, label + " Label", label);
             UIFactory.SetLayoutElement(_label.gameObject, labelWidth, height);
 
             var spacer = UIFactory.CreateUIObject("spacer", group);
@@ -533,7 +530,7 @@ namespace lstwoMODS_Core
             var group = UIFactory.CreateHorizontalGroup(root, name, true, true, true, true);
             UIFactory.SetLayoutElement(group);
 
-            var _label = UIFactory.CreateLabel(group, label + " Label", " " + label);
+            var _label = UIFactory.CreateLabel(group, label + " Label", label);
             UIFactory.SetLayoutElement(_label.gameObject, labelWidth, height);
 
             var spacer = UIFactory.CreateUIObject("spacer", group);

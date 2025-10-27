@@ -3,7 +3,10 @@ Core UI for lstwoMODS
 
 This is a game independent core BepInEx plugin. It contains no mods because they need to be added by other plugins.
 
+# How To Use
+
 The menu can be opened in game using F2.
+Most UI elements can be right-clicked to open the keybinds menu.
 
 # Installation Requirements
 

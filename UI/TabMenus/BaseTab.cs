@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System;
+using ImGuiNET;
+using UnityEngine;
 using UnityEngine.UI;
 using UniverseLib.UI;
 
@@ -12,76 +14,18 @@ namespace lstwoMODS_Core.UI.TabMenus
         }
 
         /// <summary>
-        /// The name showed on the tab button.
+        /// The name showed on the tab.
         /// </summary>
         public string Name;
 
         /// <summary>
-        /// The ui helper for the content of the Tab.
-        /// </summary>
-        protected HacksUIHelper ui;
-
-        /// <summary>
-        /// The root of the tab content.
-        /// </summary>
-        protected GameObject root;
-
-        /// <summary>
-        /// Called when UI gets constructed. Use this to create your UI.
+        /// Called every frame to render the UI.
         /// </summary>
         /// <param name="root"></param>
-        public virtual void ConstructUI(GameObject root)
-        {
-            this.root = root;
-            ui = new(root);
-
-            root.SetActive(false);
-        }
+        public abstract void RenderUI();
 
         /// <summary>
-        /// Override to change how to tabs button looks.
-        /// </summary>
-        /// <param name="ui">The UI Helper for the tab button layout group.</param>
-        /// <returns>The button GameObject</returns>
-        public virtual GameObject ConstructTabButton(GameObject root)
-        {
-            var btn = UIFactory.CreateButton(root, Name, "<b>" + Name + "</b>", HacksUIHelper.ButtonColor2);
-            btn.OnClick = () => SetTabActive(true);
-            //btn.ButtonText.font = HacksUIHelper.Font;
-            btn.GameObject.GetComponent<Image>().sprite = HacksUIHelper.RoundedRect;
-            UIFactory.SetLayoutElement(btn.GameObject, 224, 36, 0, 0);
-
-            return btn.GameObject;
-        }
-
-        /// <summary>
-        /// Used to set the current Tab content active or not active.
-        /// </summary>
-        /// <param name="active">Wether the content should be shown or not.</param>
-        public virtual void SetTabActive(bool active)
-        {
-            root.SetActive(active);
-
-            if(active)
-            {
-                Plugin.MainPanel.CurrentTab = this;
-
-                if (Plugin.MainPanel.oldTab != null && Plugin.MainPanel.oldTab != this)
-                    Plugin.MainPanel.oldTab.SetTabActive(false);
-
-                Plugin.MainPanel.oldTab = this;
-
-                RefreshUI();
-            }
-        }
-
-        /// <summary>
-        /// Idk never gets called
-        /// </summary>
-        public abstract void UpdateUI();
-
-        /// <summary>
-        /// Called when the tab gets opened. Use this to refresh your tab content.
+        /// Called when the tab gets opened.
         /// </summary>
         public abstract void RefreshUI();
     }

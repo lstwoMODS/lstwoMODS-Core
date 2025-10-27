@@ -12,14 +12,14 @@ public class AssetUtils
 {
     public List<UnitySpecificAssetBundle> AssetBundles = new();
     
-    public AssetBundle LoadCompatibleAssetBundle()
+    public AssetBundle LoadCompatibleAssetBundle(Assembly assembly)
     {
         AssetBundles = AssetBundles.OrderBy(b => b.Version).ToList();
         var currentVersion = new UnityVersion(Application.unityVersion);
 
         var compatibleBundles = from assetBundle in AssetBundles where assetBundle.CheckCompatible(currentVersion) select assetBundle;
         var compatibleBundle = compatibleBundles.FirstOrDefault();
-        var bundle = compatibleBundle?.Load(new StackTrace().GetFrame(1).GetMethod().GetType().Assembly);
+        var bundle = compatibleBundle?.Load(assembly);
             
         return bundle;
     }
@@ -41,7 +41,7 @@ public class UnitySpecificAssetBundle
         return Version.major switch
         {
             4 => current.major == 4,
-            5 => current.major >= 5 && current.major < 2018,
+            5 => current.major is >= 5 and < 2018,
             >= 2017 and < 6000 => current.major >= Version.major,
             >= 6000 => current.major >= 6000,
             _ => false
