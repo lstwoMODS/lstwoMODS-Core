@@ -72,9 +72,17 @@ public static class Window
         {
             if (ImGui.BeginTabBar("lstwoMODS_MainTabs"))
             {
-                foreach (var tab in Plugin.TabMenus.Where(tab => ImGui.BeginTabItem(tab.Name)))
+                foreach (var tab in Plugin.TabMenus)
                 {
+                    if (!ImGui.BeginTabItem(tab.Name))
+                    {
+                        continue;
+                    }
+                    
+                    ImGui.PushID("TAB " + tab.GetType().FullName);
                     tab.RenderUI();
+                    ImGui.PopID();
+                    
                     ImGui.EndTabItem();
                 }
 
@@ -92,10 +100,17 @@ public static class Window
     
     private static void Render_WindowsMode()
     {
-        foreach (var tab in Plugin.TabMenus.Where(tab => ImGui.Begin(tab.Name, ImGuiWindowFlags.None)))
-        {
-            tab.RenderUI();
+        var i = 0;
+        
+        foreach (var tab in Plugin.TabMenus)
+        { 
+            if (ImGui.Begin(tab.Name + "###" + tab.GetType().FullName + "_" + tab.Name + "_" + i, ImGuiWindowFlags.None))
+            {
+                tab.RenderUI();
+            }
+            
             ImGui.End();
+            i++;
         }
     }
 

@@ -1,3 +1,4 @@
+using System;
 using ImGuiNET;
 using UnityEngine;
 
@@ -42,5 +43,34 @@ public static class ModsUIHelper
         PreSeparator(preWidth);
         ImGui.Text(text);
         SameLineSeparator();
+    }
+    
+    public static bool ConfirmDialog(string id, string message, ref bool opened, Action onCancel = null)
+    {
+        if (!ImGui.BeginPopupModal(id, ref opened, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            return false;
+        }
+        
+        ImGui.Text(message);
+        ImGui.Separator();
+
+        if (ImGui.Button("Confirm", new Vector2(120, 0)))
+        {
+            ImGui.CloseCurrentPopup();
+            return true;
+        }
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("Cancel", new Vector2(120, 0)))
+        {
+            onCancel?.Invoke();
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.EndPopup();
+        
+        return false;
     }
 }

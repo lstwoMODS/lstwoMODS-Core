@@ -20,7 +20,8 @@ namespace lstwoMODS_Core.UI.TabMenus
 
         public void RenderModUI(BaseMod mod)
         {
-            var headerOpen = ImGui.CollapsingHeader($"{mod.Name}");
+            ImGui.PushID("MOD " + mod.GetType().FullName);
+            var headerOpen = ImGui.CollapsingHeader($"{mod.Name}###HEADER");
             
             if (!string.IsNullOrEmpty(mod.Description) && ImGui.IsItemHovered())
             {
@@ -31,6 +32,8 @@ namespace lstwoMODS_Core.UI.TabMenus
             {
                 mod.RenderUI();
             }
+            
+            ImGui.PopID();
         }
 
         public override void RenderUI()

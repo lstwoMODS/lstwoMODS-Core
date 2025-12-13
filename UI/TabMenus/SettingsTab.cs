@@ -9,30 +9,44 @@ using UnityEngine;
 using UnityEngine.UI;
 using UniverseLib.UI;
 
-namespace lstwoMODS_Core.UI.TabMenus
+namespace lstwoMODS_Core.UI.TabMenus;
+
+public class SettingsTab : BaseTab
 {
-    public class SettingsTab : BaseTab
-    {
-        private int selectedTabMode;
-        private string[] tabModes;
+    private static readonly string _confirmDialogId = typeof(SettingsTab).FullName + "_ResetWindowLayout";
+
+    private int _selectedTabMode;
+    private string[] _tabModes;
+    private bool _confirmDialogOpen;
         
-        public SettingsTab()
+    public SettingsTab()
+    {
+        Name = "Settings";
+    }
+
+    public override void RenderUI()
+    {
+        if (ImGui.Combo("Tab Mode", ref _selectedTabMode, _tabModes, _tabModes.Length))
         {
-            Name = "Settings";
+            Window.tabMode = (Window.TabMode)_selectedTabMode;
+            Window.tabModeConfigEntry.Value = _selectedTabMode;
         }
 
-        public override void RenderUI()
+        if (ImGui.Button("Reset Saved UI State (Window Layout, etc.)"))
         {
-            if (ImGui.Combo("Tab Mode", ref selectedTabMode, tabModes, tabModes.Length))
-            {
-                Window.tabMode = (Window.TabMode)selectedTabMode;
-                Window.tabModeConfigEntry.Value = selectedTabMode;
-            }
+            ImGui.OpenPopup(_confirmDialogId);
+            _confirmDialogOpen = true;
         }
 
-        public override void RefreshUI()
+        if (ModsUIHelper.ConfirmDialog(_confirmDialogId, "Reset ui state to default?", ref _confirmDialogOpen))
         {
-            tabModes = Enum.GetNames(typeof(Window.TabMode));
+            ImGui.LoadIniSettingsFromMemory("");
         }
+    }
+
+    public override void RefreshUI()
+    {
+        _tabModes = Enum.GetNames(typeof(Window.TabMode));
+        _selectedTabMode = Window.tabModeConfigEntry.Value;
     }
 }

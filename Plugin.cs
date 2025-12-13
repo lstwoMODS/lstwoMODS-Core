@@ -39,6 +39,8 @@ public class Plugin : BaseUnityPlugin
     public static AssetUtils AssetUtils { get; set; }
 
     public static UImGui.UImGui ImGuiRenderer;
+    public static List<UImGui.UImGui> AllImGuiRenderers = new();
+    
     //public static MainPanel MainPanel { get; private set; }
     //public static KeybindPanel KeybindPanel { get; private set; }
 
@@ -93,44 +95,23 @@ public class Plugin : BaseUnityPlugin
 
         OnUIInitialize += Window.Initialize;
 
-        LoadStyle();
-
         SettingsTab = new();
 
         Logger.LogInfo($"Plugin {GUID} is loaded!");
     }
 
-    private static void LoadStyle()
-    {
-        var folderPath = @$"{AppDomain.CurrentDomain.BaseDirectory}\lstwoMODS\style";
-        var styleAsset = UImGuiBundle.LoadAsset<StyleAsset>("lstwoMODS uImGui Style");
-
-        if (!Directory.Exists(folderPath))
-        {
-            Directory.CreateDirectory(folderPath);
-        }
-
-        var styleFilePath = $@"{folderPath}\style.json";
-
-        if (File.Exists(styleFilePath))
-        {
-            StyleManager.LoadFromJson(styleAsset, styleFilePath);
-        }
-
-        var templateStylePath = $@"{folderPath}\template.json";
-        
-        StyleManager.SaveToJson(styleAsset, templateStylePath);
-        
-        File.WriteAllText($@"{folderPath}\README.txt", 
-            "The template.json contains the default style parameters from lstwoMODS " +
-            "and will get automatically updated with each launch. " +
-            "Duplicate the file to change the parameters. " +
-            "The mod will look for a style.json file in this folder on every launch.");
-    }
-
     private void Start()
     {
         InitMods();
+        
+        ImGuiRenderer = UIManager.CreateImGuiContext(null, (io) =>
+        {
+            Window.Font = io.Fonts.AddFontFromFileTTF($@"{Application.streamingAssetsPath}\mods\net.lstwo.lstwoMODS\InterVariable.ttf", 18, null, io.Fonts.GetGlyphRangesDefault());
+        });
+        
+        AllImGuiRenderers.Add(ImGuiRenderer);
+        
+        OnUIInitialize?.Invoke();
     }
 
     public static void InitMods()
