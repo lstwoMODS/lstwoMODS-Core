@@ -1,11 +1,7 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using lstwoMODS_Core.Hacks;
-using UnityEngine;
-using UnityEngine.UI;
-using UniverseLib.UI;
 
 namespace lstwoMODS_Core.UI.TabMenus
 {

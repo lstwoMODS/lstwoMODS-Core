@@ -1,18 +1,19 @@
 ﻿using BepInEx;
 using UnityEngine;
-using lstwoMODS_Core.UI;
 using System.Collections.Generic;
-using lstwoMODS_Core.UI.TabMenus;
 using System.Reflection;
 using System.Collections;
 using System;
+using System.Diagnostics;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using System.Linq;
-using System.IO;
-using ImGuiNET;
+using System.Runtime.InteropServices;
+using System.Threading;
 using lstwoMODS_Core.Hacks;
-using UImGui.Assets;
+using lstwoMODS_Core.UI;
+using lstwoMODS_Core.UI.TabMenus;
+using Debug = UnityEngine.Debug;
 
 namespace lstwoMODS_Core;
 
@@ -24,9 +25,8 @@ public class Plugin : BaseUnityPlugin
     public static bool DevMode = false;
 
     // ASSETS
-    public static AssetBundle AssetBundle { get; private set; }
+    //public static AssetBundle AssetBundle { get; private set; }
     //public static AssetBundle LstwoModsUImGuiBundle;
-    public static AssetBundle UImGuiBundle;
 
     // QUICK ACCESS
     public const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
@@ -37,9 +37,6 @@ public class Plugin : BaseUnityPlugin
     // INSTANCES
     public static Plugin Instance { get; private set; }
     public static AssetUtils AssetUtils { get; set; }
-
-    public static UImGui.UImGui ImGuiRenderer;
-    public static List<UImGui.UImGui> AllImGuiRenderers = new();
     
     //public static MainPanel MainPanel { get; private set; }
     //public static KeybindPanel KeybindPanel { get; private set; }
@@ -47,7 +44,7 @@ public class Plugin : BaseUnityPlugin
     public static List<BaseTab> TabMenus { get; private set; } = new();
     public static List<BaseMod> Mods { get; private set; } = new();
 
-    public static SettingsTab SettingsTab;
+    //public static SettingsTab SettingsTab;
 
     //public static ProfilesTab ProfilesTab { get; private set; }
 
@@ -57,14 +54,13 @@ public class Plugin : BaseUnityPlugin
     // UI TOGGLING
     public static Action<bool> OnUIToggle { get; set; }
     public static List<Func<bool>> UIConditions { get; set; } = new();
-        
+    
     // CONFIG
-    public static ConfigEntry<float> UIScaleFactor;
+    //public static ConfigEntry<float> UIScaleFactor;
 
-    public static Action OnUIInitialize;
+    private static Thread _renderThread;
 
-    private static FieldInfo uImGuiCameraField;
-        
+    private static LstwoModsOverlay _window;
 
     private void Awake()
     {
@@ -85,33 +81,27 @@ public class Plugin : BaseUnityPlugin
 
         AssetBundle = AssetUtils.LoadCompatibleAssetBundle(GetType().Assembly);*/
         //KeybindManager = gameObject.AddComponent<KeybindManager>();
-            
+        
         //HacksUIHelper.LoadConfig();
         //KeybindManager.LoadAllKeybinds();
 
-        var assetBundles = Path.GetDirectoryName(Assembly.GetAssembly(typeof(ImGui)).Location) + "/assets/";
-        UImGuiBundle = UnityEngine.AssetBundle.LoadFromFile(assetBundles + "uimgui");
+        //var assetBundles = Path.GetDirectoryName(Assembly.GetAssembly(typeof(ImGui)).Location) + "/assets/";
         //LstwoModsUImGuiBundle = UnityEngine.AssetBundle.LoadFromFile(assetBundles + "lstwomods_uimgui");
-
-        OnUIInitialize += Window.Initialize;
-
-        SettingsTab = new();
-
+        
+        //SettingsTab = new();
+        
         Logger.LogInfo($"Plugin {GUID} is loaded!");
     }
 
     private void Start()
     {
-        InitMods();
-        
-        ImGuiRenderer = UIManager.CreateImGuiContext(null, (io) =>
+        UIManager.OnInitialized += async () =>
         {
-            Window.Font = io.Fonts.AddFontFromFileTTF($@"{Application.streamingAssetsPath}\mods\net.lstwo.lstwoMODS\InterVariable.ttf", 18, null, io.Fonts.GetGlyphRangesDefault());
-        });
-        
-        AllImGuiRenderers.Add(ImGuiRenderer);
-        
-        OnUIInitialize?.Invoke();
+            _window = new LstwoModsOverlay(GetWindowHandle());
+            await _window.Initialize();
+            InitMods();
+        };
+        UIManager.Initialize();
     }
 
     public static void InitMods()
@@ -159,14 +149,29 @@ public class Plugin : BaseUnityPlugin
 
     private void Update()
     {
+        while (MainThread.Queue.TryDequeue(out var action))
+        {
+            action();
+        }
+        
         if(Input.GetKeyDown(KeyCode.F2))
         {
             ToggleUI();
+        }
+        
+        while (MainThread.Queue.TryDequeue(out var action))
+        {
+            action();
         }
 
         foreach(var mod in Mods)
         {
             mod.Update();
+        }
+        
+        while (MainThread.Queue.TryDequeue(out var action))
+        {
+            action();
         }
     }
 
@@ -174,10 +179,35 @@ public class Plugin : BaseUnityPlugin
     {
         if (UIConditions.Any(condition => !condition.Invoke()))
         {
-            Window.Enabled = false;
+            //LstwoModsUI.Enabled = false;
             return;
         }
 
-        Window.Enabled = !Window.Enabled;
+        //LstwoModsUI.Enabled = !LstwoModsUI.Enabled;
+    }
+
+    private void OnDestroy()
+    {
+        UIManager.Dispose();
+    }
+    
+    private delegate bool EnumThreadDelegate(IntPtr hwnd, IntPtr lParam);
+    
+    [DllImport("user32.dll")]
+    static extern bool EnumThreadWindows(int dwThreadId, EnumThreadDelegate lpfn, IntPtr lParam);
+
+    [DllImport("Kernel32.dll")]
+    static extern int GetCurrentThreadId();
+
+    static IntPtr GetWindowHandle()
+    {
+        IntPtr returnHwnd = IntPtr.Zero;
+        var threadId = GetCurrentThreadId();
+        EnumThreadWindows(threadId,
+            (hWnd, lParam) => {
+                if(returnHwnd == IntPtr.Zero) returnHwnd = hWnd;
+                return true;
+            }, IntPtr.Zero);
+        return returnHwnd;
     }
 }

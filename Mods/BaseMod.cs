@@ -18,15 +18,15 @@ namespace lstwoMODS_Core.Hacks
         /// <summary>
         /// The tab your hack should get added to.
         /// </summary>
-        public abstract ModsTab ModsTab { get; }
+        //public abstract ModsTab ModsTab { get; }
 
         public BaseMod()
         {
             Plugin.Mods.Add(this);
 
-            if(ModsTab != null)
+            //if(ModsTab != null)
             {
-                ModsTab.Mods.Add(this);
+                //ModsTab.Mods.Add(this);
             }
         }
 

@@ -1,5 +1,5 @@
 using System;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using UnityEngine;
 
 namespace lstwoMODS_Core.UI;
@@ -10,18 +10,18 @@ public static class ModsUIHelper
     {
         var drawList = ImGui.GetWindowDrawList();
         var cursorPos = ImGui.GetCursorPos();
-        var contentWidth = width > 0 ? width : ImGui.GetContentRegionAvail().x;
+        var contentWidth = width > 0 ? width : ImGui.GetContentRegionAvail().X;
 
-        var x1 = cursorPos.x;
+        var x1 = cursorPos.X;
         var x2 = x1 + contentWidth;
 
-        var y = cursorPos.y + ImGui.GetTextLineHeight() / 2f;
+        var y = cursorPos.Y + ImGui.GetTextLineHeight() / 2f;
 
-        ImGui.Dummy(new Vector2(contentWidth, 1));
+        ImGui.Dummy(new Vec2(contentWidth, 1));
 
         drawList.AddLine(
-            new Vector2(x1 + ImGui.GetWindowPos().x, y + ImGui.GetWindowPos().y),
-            new Vector2(x2 + ImGui.GetWindowPos().x, y + ImGui.GetWindowPos().y),
+            new Vec2(x1 + ImGui.GetWindowPos().X, y + ImGui.GetWindowPos().Y),
+            new Vec2(x2 + ImGui.GetWindowPos().X, y + ImGui.GetWindowPos().Y),
             ImGui.GetColorU32(ImGuiCol.Border)
         );
     }
@@ -55,7 +55,7 @@ public static class ModsUIHelper
         ImGui.Text(message);
         ImGui.Separator();
 
-        if (ImGui.Button("Confirm", new Vector2(120, 0)))
+        if (ImGui.Button("Confirm", new Vec2(120, 0)))
         {
             ImGui.CloseCurrentPopup();
             return true;
@@ -63,7 +63,7 @@ public static class ModsUIHelper
 
         ImGui.SameLine();
 
-        if (ImGui.Button("Cancel", new Vector2(120, 0)))
+        if (ImGui.Button("Cancel", new Vec2(120, 0)))
         {
             onCancel?.Invoke();
             ImGui.CloseCurrentPopup();

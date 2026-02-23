@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net472</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latestmajor</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <ApplicationIcon>icon.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <DebugSymbols>true</DebugSymbols>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="IO\**" />
+      <Compile Remove="Old\**" />
+      <Compile Remove="BackendsOLD\**" />
+      <Compile Remove="BackendsOLD_ImGuiNET\**" />
+      <Compile Remove="RendererOLDOverlay\**" />
+      <Compile Remove="New folder\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="IO\**" />
+      <EmbeddedResource Remove="Old\**" />
+      <EmbeddedResource Remove="BackendsOLD\**" />
+      <EmbeddedResource Remove="BackendsOLD_ImGuiNET\**" />
+      <EmbeddedResource Remove="RendererOLDOverlay\**" />
+      <EmbeddedResource Remove="New folder\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="IO\**" />
+      <None Remove="Old\**" />
+      <None Remove="BackendsOLD\**" />
+      <None Remove="BackendsOLD_ImGuiNET\**" />
+      <None Remove="RendererOLDOverlay\**" />
+      <None Remove="New folder\**" />
+      <None Update="icon.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="icon.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Hexa.NET.GLFW" Version="1.0.5" />
+      <PackageReference Include="Hexa.NET.ImGui" Version="2.2.9" />
+      <PackageReference Include="Hexa.NET.ImGui.Backends" Version="1.0.18" />
+      <PackageReference Include="Hexa.NET.ImGui.Backends.GLFW" Version="1.0.18" />
+      <PackageReference Include="Hexa.NET.ImGui.Widgets" Version="1.2.15" />
+      <PackageReference Include="Hexa.NET.ImGuizmo" Version="2.2.9" />
+      <PackageReference Include="Hexa.NET.ImNodes" Version="2.2.9" />
+      <PackageReference Include="Hexa.NET.ImPlot" Version="2.2.9" />
+      <PackageReference Include="Hexa.NET.OpenGL3" Version="1.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\lstwoMODS.ImGui.Shared\lstwoMODS.ImGui.Shared.csproj" />
+    </ItemGroup>
+
+</Project>

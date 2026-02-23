@@ -1,10 +1,4 @@
-﻿using System;
-using ImGuiNET;
-using UnityEngine;
-using UnityEngine.UI;
-using UniverseLib.UI;
-
-namespace lstwoMODS_Core.UI.TabMenus
+﻿namespace lstwoMODS_Core.UI.TabMenus
 {
     public abstract class BaseTab
     {

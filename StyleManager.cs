@@ -1,21 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using Newtonsoft.Json;
-using UImGui.Assets;
-using UnityEngine;
+using System.Runtime.InteropServices;
 
 namespace lstwoMODS_Core;
 
-
-public class StyleManager
+public static class StyleManager
 {
-    [Serializable]
-    public struct Vec2 { public float x, y; public static implicit operator Vec2(Vector2 v) => new Vec2 { x = v.x, y = v.y }; public static implicit operator Vector2(Vec2 v) => new Vector2(v.x, v.y); }
-    [Serializable]
-    public struct Col { public float r, g, b, a; public static implicit operator Col(Color c) => new Col { r = c.r, g = c.g, b = c.b, a = c.a }; public static implicit operator Color(Col c) => new Color(c.r, c.g, c.b, c.a); }
-    
     [Serializable]
     public class NamedColor
     {
@@ -24,7 +17,7 @@ public class StyleManager
     }
 
     [Serializable]
-    public class StyleAssetData
+    public class StyleData
     {
         public float Alpha;
         public Vec2 WindowPadding;
@@ -33,166 +26,206 @@ public class StyleManager
         public Vec2 WindowMinSize;
         public Vec2 WindowTitleAlign;
         public ImGuiDir WindowMenuButtonPosition;
+
         public float ChildRounding;
         public float ChildBorderSize;
         public float PopupRounding;
         public float PopupBorderSize;
+
         public Vec2 FramePadding;
         public float FrameRounding;
         public float FrameBorderSize;
+
         public Vec2 ItemSpacing;
         public Vec2 ItemInnerSpacing;
         public Vec2 CellPadding;
         public Vec2 TouchExtraPadding;
+
         public float IndentSpacing;
         public float ColumnsMinSpacing;
+
         public float ScrollbarSize;
         public float ScrollbarRounding;
         public float GrabMinSize;
         public float GrabRounding;
+
         public float LogSliderDeadzone;
+
         public float TabRounding;
         public float TabBorderSize;
+
         public ImGuiDir ColorButtonPosition;
         public Vec2 ButtonTextAlign;
         public Vec2 SelectableTextAlign;
+
         public Vec2 DisplayWindowPadding;
         public Vec2 DisplaySafeAreaPadding;
+
         public float MouseCursorScale;
+
         public bool AntiAliasedLines;
         public bool AntiAliasedLinesUseTex;
         public bool AntiAliasedFill;
+
         public float CurveTessellationTol;
         public float CircleTessellationMaxError;
+
         public List<NamedColor> Colors;
     }
 
-    public static void SaveToJson(StyleAsset styleAsset, string filePath)
+    public static void SaveToJson(string filePath, ImGuiStylePtr s)
     {
-        if (styleAsset == null)
+        var data = new StyleData
         {
-            return;
-        }
+            Alpha = s.Alpha,
+            WindowPadding = s.WindowPadding,
+            WindowRounding = s.WindowRounding,
+            WindowBorderSize = s.WindowBorderSize,
+            WindowMinSize = s.WindowMinSize,
+            WindowTitleAlign = s.WindowTitleAlign,
+            WindowMenuButtonPosition = s.WindowMenuButtonPosition,
 
-        var data = new StyleAssetData
-        {
-            Alpha = styleAsset.Alpha,
-            WindowPadding = styleAsset.WindowPadding,
-            WindowRounding = styleAsset.WindowRounding,
-            WindowBorderSize = styleAsset.WindowBorderSize,
-            WindowMinSize = styleAsset.WindowMinSize,
-            WindowTitleAlign = styleAsset.WindowTitleAlign,
-            WindowMenuButtonPosition = styleAsset.WindowMenuButtonPosition,
-            ChildRounding = styleAsset.ChildRounding,
-            ChildBorderSize = styleAsset.ChildBorderSize,
-            PopupRounding = styleAsset.PopupRounding,
-            PopupBorderSize = styleAsset.PopupBorderSize,
-            FramePadding = styleAsset.FramePadding,
-            FrameRounding = styleAsset.FrameRounding,
-            FrameBorderSize = styleAsset.FrameBorderSize,
-            ItemSpacing = styleAsset.ItemSpacing,
-            ItemInnerSpacing = styleAsset.ItemInnerSpacing,
-            CellPadding = styleAsset.CellPadding,
-            TouchExtraPadding = styleAsset.TouchExtraPadding,
-            IndentSpacing = styleAsset.IndentSpacing,
-            ColumnsMinSpacing = styleAsset.ColumnsMinSpacing,
-            ScrollbarSize = styleAsset.ScrollbarSize,
-            ScrollbarRounding = styleAsset.ScrollbarRounding,
-            GrabMinSize = styleAsset.GrabMinSize,
-            GrabRounding = styleAsset.GrabRounding,
-            LogSliderDeadzone = styleAsset.LogSliderDeadzone,
-            TabRounding = styleAsset.TabRounding,
-            TabBorderSize = styleAsset.TabBorderSize,
-            ColorButtonPosition = styleAsset.ColorButtonPosition,
-            ButtonTextAlign = styleAsset.ButtonTextAlign,
-            SelectableTextAlign = styleAsset.SelectableTextAlign,
-            DisplayWindowPadding = styleAsset.DisplayWindowPadding,
-            DisplaySafeAreaPadding = styleAsset.DisplaySafeAreaPadding,
-            MouseCursorScale = styleAsset.MouseCursorScale,
-            AntiAliasedLines = styleAsset.AntiAliasedLines,
-            AntiAliasedLinesUseTex = styleAsset.AntiAliasedLinesUseTex,
-            AntiAliasedFill = styleAsset.AntiAliasedFill,
-            CurveTessellationTol = styleAsset.CurveTessellationTol,
-            CircleTessellationMaxError = styleAsset.CircleTessellationMaxError,
+            ChildRounding = s.ChildRounding,
+            ChildBorderSize = s.ChildBorderSize,
+            PopupRounding = s.PopupRounding,
+            PopupBorderSize = s.PopupBorderSize,
+
+            FramePadding = s.FramePadding,
+            FrameRounding = s.FrameRounding,
+            FrameBorderSize = s.FrameBorderSize,
+
+            ItemSpacing = s.ItemSpacing,
+            ItemInnerSpacing = s.ItemInnerSpacing,
+            CellPadding = s.CellPadding,
+            TouchExtraPadding = s.TouchExtraPadding,
+
+            IndentSpacing = s.IndentSpacing,
+            ColumnsMinSpacing = s.ColumnsMinSpacing,
+
+            ScrollbarSize = s.ScrollbarSize,
+            ScrollbarRounding = s.ScrollbarRounding,
+            GrabMinSize = s.GrabMinSize,
+            GrabRounding = s.GrabRounding,
+
+            LogSliderDeadzone = s.LogSliderDeadzone,
+
+            TabRounding = s.TabRounding,
+            TabBorderSize = s.TabBorderSize,
+
+            ColorButtonPosition = s.ColorButtonPosition,
+            ButtonTextAlign = s.ButtonTextAlign,
+            SelectableTextAlign = s.SelectableTextAlign,
+
+            DisplayWindowPadding = s.DisplayWindowPadding,
+            DisplaySafeAreaPadding = s.DisplaySafeAreaPadding,
+
+            MouseCursorScale = s.MouseCursorScale,
+
+            AntiAliasedLines = s.AntiAliasedLines,
+            AntiAliasedLinesUseTex = s.AntiAliasedLinesUseTex,
+            AntiAliasedFill = s.AntiAliasedFill,
+
+            CurveTessellationTol = s.CurveTessellationTol,
+            CircleTessellationMaxError = s.CircleTessellationMaxError,
+
             Colors = new List<NamedColor>()
         };
-        
-        for (var i = 0; i < (int)ImGuiCol.COUNT; i++)
+
+        for (var i = 0; i < (int)ImGuiCol.Count; i++)
         {
-            var colorName = ImGui.GetStyleColorName((ImGuiCol)i);
-            data.Colors.Add(new NamedColor
+            unsafe
             {
-                name = colorName,
-                color = styleAsset.Colors[i]
-            });
+                var namePtr = ImGui.GetStyleColorName((ImGuiCol)i);
+                var name = Marshal.PtrToStringAnsi((IntPtr)namePtr);
+                
+                data.Colors.Add(new NamedColor
+                {
+                    name = name,
+                    color = s.Colors[i]
+                });
+            }
         }
-        
-        var json = JsonConvert.SerializeObject(data, Formatting.Indented);
-        File.WriteAllText(filePath, json);
+
+        File.WriteAllText(
+            filePath,
+            JsonConvert.SerializeObject(data, Formatting.Indented)
+        );
     }
 
-    public static void LoadFromJson(StyleAsset styleAsset, string filePath)
+
+    public static bool LoadFromJson(string filePath)
     {
         if (!File.Exists(filePath))
-        {
-            return;
-        }
+            return false;
 
-        var json = File.ReadAllText(filePath);
-        var data = JsonConvert.DeserializeObject<StyleAssetData>(json);
-        
+        var data = JsonConvert.DeserializeObject<StyleData>(
+            File.ReadAllText(filePath)
+        );
+
         if (data == null)
-        {
-            return;
-        }
+            return false;
 
-        styleAsset.Alpha = data.Alpha;
-        styleAsset.WindowPadding = data.WindowPadding;
-        styleAsset.WindowRounding = data.WindowRounding;
-        styleAsset.WindowBorderSize = data.WindowBorderSize;
-        styleAsset.WindowMinSize = data.WindowMinSize;
-        styleAsset.WindowTitleAlign = data.WindowTitleAlign;
-        styleAsset.WindowMenuButtonPosition = data.WindowMenuButtonPosition;
-        styleAsset.ChildRounding = data.ChildRounding;
-        styleAsset.ChildBorderSize = data.ChildBorderSize;
-        styleAsset.PopupRounding = data.PopupRounding;
-        styleAsset.PopupBorderSize = data.PopupBorderSize;
-        styleAsset.FramePadding = data.FramePadding;
-        styleAsset.FrameRounding = data.FrameRounding;
-        styleAsset.FrameBorderSize = data.FrameBorderSize;
-        styleAsset.ItemSpacing = data.ItemSpacing;
-        styleAsset.ItemInnerSpacing = data.ItemInnerSpacing;
-        styleAsset.CellPadding = data.CellPadding;
-        styleAsset.TouchExtraPadding = data.TouchExtraPadding;
-        styleAsset.IndentSpacing = data.IndentSpacing;
-        styleAsset.ColumnsMinSpacing = data.ColumnsMinSpacing;
-        styleAsset.ScrollbarSize = data.ScrollbarSize;
-        styleAsset.ScrollbarRounding = data.ScrollbarRounding;
-        styleAsset.GrabMinSize = data.GrabMinSize;
-        styleAsset.GrabRounding = data.GrabRounding;
-        styleAsset.LogSliderDeadzone = data.LogSliderDeadzone;
-        styleAsset.TabRounding = data.TabRounding;
-        styleAsset.TabBorderSize = data.TabBorderSize;
-        styleAsset.ColorButtonPosition = data.ColorButtonPosition;
-        styleAsset.ButtonTextAlign = data.ButtonTextAlign;
-        styleAsset.SelectableTextAlign = data.SelectableTextAlign;
-        styleAsset.DisplayWindowPadding = data.DisplayWindowPadding;
-        styleAsset.DisplaySafeAreaPadding = data.DisplaySafeAreaPadding;
-        styleAsset.MouseCursorScale = data.MouseCursorScale;
-        styleAsset.AntiAliasedLines = data.AntiAliasedLines;
-        styleAsset.AntiAliasedLinesUseTex = data.AntiAliasedLinesUseTex;
-        styleAsset.AntiAliasedFill = data.AntiAliasedFill;
-        styleAsset.CurveTessellationTol = data.CurveTessellationTol;
-        styleAsset.CircleTessellationMaxError = data.CircleTessellationMaxError;
+        var s = ImGui.GetStyle();
+
+        s.Alpha = data.Alpha;
+        s.WindowPadding = data.WindowPadding;
+        s.WindowRounding = data.WindowRounding;
+        s.WindowBorderSize = data.WindowBorderSize;
+        s.WindowMinSize = data.WindowMinSize;
+        s.WindowTitleAlign = data.WindowTitleAlign;
+        s.WindowMenuButtonPosition = data.WindowMenuButtonPosition;
+
+        s.ChildRounding = data.ChildRounding;
+        s.ChildBorderSize = data.ChildBorderSize;
+        s.PopupRounding = data.PopupRounding;
+        s.PopupBorderSize = data.PopupBorderSize;
+
+        s.FramePadding = data.FramePadding;
+        s.FrameRounding = data.FrameRounding;
+        s.FrameBorderSize = data.FrameBorderSize;
+
+        s.ItemSpacing = data.ItemSpacing;
+        s.ItemInnerSpacing = data.ItemInnerSpacing;
+        s.CellPadding = data.CellPadding;
+        s.TouchExtraPadding = data.TouchExtraPadding;
+
+        s.IndentSpacing = data.IndentSpacing;
+        s.ColumnsMinSpacing = data.ColumnsMinSpacing;
+
+        s.ScrollbarSize = data.ScrollbarSize;
+        s.ScrollbarRounding = data.ScrollbarRounding;
+        s.GrabMinSize = data.GrabMinSize;
+        s.GrabRounding = data.GrabRounding;
+
+        s.LogSliderDeadzone = data.LogSliderDeadzone;
+
+        s.TabRounding = data.TabRounding;
+        s.TabBorderSize = data.TabBorderSize;
+
+        s.ColorButtonPosition = data.ColorButtonPosition;
+        s.ButtonTextAlign = data.ButtonTextAlign;
+        s.SelectableTextAlign = data.SelectableTextAlign;
+
+        s.DisplayWindowPadding = data.DisplayWindowPadding;
+        s.DisplaySafeAreaPadding = data.DisplaySafeAreaPadding;
+
+        s.MouseCursorScale = data.MouseCursorScale;
+
+        s.AntiAliasedLines = data.AntiAliasedLines;
+        s.AntiAliasedLinesUseTex = data.AntiAliasedLinesUseTex;
+        s.AntiAliasedFill = data.AntiAliasedFill;
+
+        s.CurveTessellationTol = data.CurveTessellationTol;
+        s.CircleTessellationMaxError = data.CircleTessellationMaxError;
 
         if (data.Colors == null)
+            return false;
+
+        for (var i = 0; i < Math.Min(data.Colors.Count, (int)ImGuiCol.Count); i++)
         {
-            return;
+            s.Colors[i] = data.Colors[i].color;
         }
-        
-        for (var i = 0; i < Mathf.Min(data.Colors.Count, styleAsset.Colors.Length); i++)
-        {
-            styleAsset.Colors[i] = data.Colors[i].color;
-        }
+
+        return true;
     }
 }

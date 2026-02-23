@@ -1,57 +1,115 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using ImGuiNET;
-using UImGui.Assets;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using lstwoMODS.ImGui.Shared;
+using lstwoMODS.ImGui.Shared.Messages;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace lstwoMODS_Core.UI;
 
 public static class UIManager
 {
-    public static Func<StyleAsset, Action<ImGuiIOPtr>, UImGui.UImGui> createImGuiContext;
+    public static Action OnConfigure;
+    public static Action OnRender;
+    public static int MainIpcChannelPort;
+    public static Process Process;
+    public static IpcChannel IpcChannel;
 
-    private static StyleAsset defaultStyle;
+    private static ConfigEntry<string> _overlayExePath;
+    private static Task IpcChannelMainTask;
+
+    public static Action OnInitialized;
     
-    public static UImGui.UImGui CreateImGuiContext(StyleAsset style, Action<ImGuiIOPtr> customFontInit = null, bool useLstwoModsStyle = true)
+    public static int GetRandomFreePort()
     {
-        if (useLstwoModsStyle)
-        {
-            defaultStyle ??= LoadStyle();
-            style = defaultStyle;
-        }
-        
-        var uimgui = createImGuiContext(style, customFontInit);
-        Plugin.AllImGuiRenderers.Add(uimgui);
-        
-        return uimgui;
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+
+        listener.Stop();
+        return port;
     }
 
-    private static StyleAsset LoadStyle()
+    internal static void Initialize()
     {
-        var folderPath = @$"{AppDomain.CurrentDomain.BaseDirectory}\lstwoMODS\style";
-        var styleAsset = Plugin.UImGuiBundle.LoadAsset<StyleAsset>("lstwoMODS uImGui Style");
-
-        if (!Directory.Exists(folderPath))
-        {
-            Directory.CreateDirectory(folderPath);
-        }
-
-        var styleFilePath = $@"{folderPath}\style.json";
-
-        if (File.Exists(styleFilePath))
-        {
-            StyleManager.LoadFromJson(styleAsset, styleFilePath);
-        }
-
-        var templateStylePath = $@"{folderPath}\template.json";
+        _overlayExePath = Plugin.ConfigFile.Bind(
+            "Internal", 
+            "Relative Overlay Exe File Path",
+            "Overlay/lstwoMODS_Overlay.exe",
+            "The relative path to the overlay exe file from the dll file."
+        );
         
-        StyleManager.SaveToJson(styleAsset, templateStylePath);
+        MainIpcChannelPort = GetRandomFreePort();
         
-        File.WriteAllText($@"{folderPath}\README.txt", 
-            "The template.json contains the default style parameters from lstwoMODS " +
-            "and will get automatically updated with each launch. " +
-            "Duplicate the file to change the parameters. " +
-            "The mod will look for a style.json file in this folder on every launch.");
+        var exePath = Path.Combine(Path.GetDirectoryName(typeof(UIManager).Assembly.Location), _overlayExePath.Value);
 
-        return styleAsset;
+        if (!File.Exists(exePath))
+        {
+            exePath = Path.Combine(Path.GetDirectoryName(typeof(UIManager).Assembly.Location), "Overlay/lstwoMODS_Overlay.exe");
+            _overlayExePath.Value = "Overlay/lstwoMODS_Overlay.exe";
+        }
+        
+        var gameProcessId = Process.GetCurrentProcess().Id;
+        
+        var psi = new ProcessStartInfo
+        {
+            FileName = exePath,
+            Arguments = $"{MainIpcChannelPort} {gameProcessId}",
+            WorkingDirectory = Path.GetDirectoryName(exePath),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        Process = new Process { StartInfo = psi };
+
+        Process.OutputDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrEmpty(args.Data))
+            {
+                Plugin.LogSource.LogInfo($"[Overlay] {args.Data}");
+            }
+        };
+        
+        Process.ErrorDataReceived += (_, args) =>
+        {
+            if (!string.IsNullOrEmpty(args.Data))
+            {
+                Plugin.LogSource.LogError($"[Overlay] {args.Data}");
+            }
+        };
+        
+        IpcChannel = new IpcChannel(true, MainIpcChannelPort, OnInitialized);
+
+        IpcChannel.Log += (msg, type) => Plugin.LogSource.Log(type switch
+        {
+            IpcChannel.LogType.Debug => LogLevel.Debug,
+            IpcChannel.LogType.Info => LogLevel.Info,
+            IpcChannel.LogType.Warning => LogLevel.Warning,
+            IpcChannel.LogType.Error => LogLevel.Error,
+            _ => LogLevel.Info
+        }, "[IPC] " + msg);
+        
+        IpcChannelMainTask = IpcChannel.Main();
+        
+        Process.Start();
+        Process.BeginOutputReadLine();
+        Process.BeginErrorReadLine();
+    }
+
+    internal static void Dispose()
+    {
+        IpcChannel.SendAndWaitAsync(new GameShutDownMessage().Serialize()).Wait();
+        IpcChannel.Dispose();
     }
 }

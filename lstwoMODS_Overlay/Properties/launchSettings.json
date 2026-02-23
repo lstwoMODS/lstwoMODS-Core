@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "lstwoMODS_Overlay": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

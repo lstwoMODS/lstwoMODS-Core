@@ -1,13 +1,6 @@
 ﻿using BepInEx.Configuration;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ImGuiNET;
-using UnityEngine;
-using UnityEngine.UI;
-using UniverseLib.UI;
+using Hexa.NET.ImGui;
 
 namespace lstwoMODS_Core.UI.TabMenus;
 
@@ -28,8 +21,8 @@ public class SettingsTab : BaseTab
     {
         if (ImGui.Combo("Tab Mode", ref _selectedTabMode, _tabModes, _tabModes.Length))
         {
-            Window.tabMode = (Window.TabMode)_selectedTabMode;
-            Window.tabModeConfigEntry.Value = _selectedTabMode;
+            LstwoModsUI.tabMode = (LstwoModsUI.TabMode)_selectedTabMode;
+            LstwoModsUI.tabModeConfigEntry.Value = _selectedTabMode;
         }
 
         if (ImGui.Button("Reset Saved UI State (Window Layout, etc.)"))
@@ -46,7 +39,7 @@ public class SettingsTab : BaseTab
 
     public override void RefreshUI()
     {
-        _tabModes = Enum.GetNames(typeof(Window.TabMode));
-        _selectedTabMode = Window.tabModeConfigEntry.Value;
+        _tabModes = Enum.GetNames(typeof(LstwoModsUI.TabMode));
+        _selectedTabMode = LstwoModsUI.tabModeConfigEntry.Value;
     }
 }

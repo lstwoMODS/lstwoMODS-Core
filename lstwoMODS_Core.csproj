@@ -24,12 +24,7 @@
 	  <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
-    <PackageReference Include="Costura.Fody" Version="6.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.6.1" />
     <PackageReference Include="UnityEngine.Modules" Version="2020.3.44" IncludeAssets="compile" />
     <PackageReference Include="UniverseLib.Mono" Version="1.5.1" />
   </ItemGroup>
@@ -39,10 +34,11 @@
   </ItemGroup>
   
   <ItemGroup>
-    
+    <ProjectReference Include="lstwoMODS.ImGui.Shared\lstwoMODS.ImGui.Shared.csproj" />
   </ItemGroup>
   
   <ItemGroup>
+    <Folder Include="UI\Internal\" />
     <Folder Include="UI\Profiles\" />
   </ItemGroup>
   
@@ -50,29 +46,23 @@
     <Reference Include="CinematicUnityExplorer.BIE5.Mono">
       <HintPath>lib\CinematicUnityExplorer.BIE5.Mono.dll</HintPath>
     </Reference>
-    <Reference Include="ImGui.NET">
-      <HintPath>lib\ImGui.NET.dll</HintPath>
-    </Reference>
-    <Reference Include="ImGuizmo.NET">
-      <HintPath>lib\ImGuizmo.NET.dll</HintPath>
-    </Reference>
-    <Reference Include="ImNodes.NET">
-      <HintPath>lib\ImNodes.NET.dll</HintPath>
-    </Reference>
-    <Reference Include="ImPlot.NET">
-      <HintPath>lib\ImPlot.NET.dll</HintPath>
-    </Reference>
     <Reference Include="netstandard">
       <HintPath>lib\netstandard.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
-    <Reference Include="UImGui">
-      <HintPath>lib\UImGui.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>lib\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>lib\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>lib\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>lib\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
   </ItemGroup>
   
@@ -80,11 +70,29 @@
     <Compile Remove="Keybinds\**" />
     <Compile Remove="UI\Keybinds\**" />
     <Compile Remove="HacksUIHelper.cs" />
+    <Compile Remove="lstwoMODS_Overlay\**" />
+    <Compile Remove="lstwoMODS.ImGui.Abstractions\**" />
+    <Compile Remove="lstwoMODS.ImGui.CodeGen\**" />
+    <Compile Remove="StyleManager.cs" />
+    <Compile Remove="UI\ModsUIHelper.cs" />
+    <Compile Remove="UI\LstwoModsUI.cs" />
+    <Compile Remove="UI\TabMenus\ModsTab.cs" />
+    <Compile Remove="UI\TabMenus\SettingsTab.cs" />
+    <Compile Remove="lstwoMODS.ImGui.Shared\**" />
+    <Compile Remove="MemoryMappedFileIPC\**" />
+    <Compile Remove="SharedMemory\**" />
   </ItemGroup>
   
   <ItemGroup>
     <None Remove="Keybinds\**" />
     <None Remove="UI\Keybinds\**" />
+    <None Remove="lstwoMODS_Overlay\**" />
+    <None Remove="lstwoMODS.ImGui.Abstractions\**" />
+    <None Remove="lstwoMODS.ImGui.CodeGen\**" />
+    <None Remove="UI\TabMenus\**" />
+    <None Remove="lstwoMODS.ImGui.Shared\**" />
+    <None Remove="MemoryMappedFileIPC\**" />
+    <None Remove="SharedMemory\**" />
   </ItemGroup>
   
   <ItemGroup>
@@ -100,5 +108,12 @@
     <EmbeddedResource Include="Resources\assets.2020.bundle" />
     <None Remove="Resources\assets.6000.bundle" />
     <EmbeddedResource Include="Resources\assets.6000.bundle" />
+    <EmbeddedResource Remove="lstwoMODS_Overlay\**" />
+    <EmbeddedResource Remove="lstwoMODS.ImGui.Abstractions\**" />
+    <EmbeddedResource Remove="lstwoMODS.ImGui.CodeGen\**" />
+    <EmbeddedResource Remove="UI\TabMenus\**" />
+    <EmbeddedResource Remove="lstwoMODS.ImGui.Shared\**" />
+    <EmbeddedResource Remove="MemoryMappedFileIPC\**" />
+    <EmbeddedResource Remove="SharedMemory\**" />
   </ItemGroup>
 </Project>
