@@ -1,12 +1,14 @@
 # lstwoMODS-Core
+
 Core UI for lstwoMODS
 
-This is a game independent core BepInEx plugin. It contains no mods because they need to be added by other plugins.
+This is a game independent BepInEx plugin adding Dear ImGui to Unity and my own Azzamods-like Mod Menu framework.
+
+Mostly used for my Wobbly Life mods but can technically be used for anything.
 
 # How To Use
 
 The menu can be opened in game using F2.
-Most UI elements can be right-clicked to open the keybinds menu.
 
 # Installation Requirements
 
@@ -15,9 +17,9 @@ Requires [Cinematic Unity Explorer](https://github.com/originalnicodr/CinematicU
 > [!NOTE]
 > lstwoMODS only supports BepInEx 5.X for Mono so far
 
-# Automatic Installation
+# Recommended Installation
 
-You can use the installer [here](https://github.com/lstwoMODS/lstwoMODSInstaller) to install lstwoMODS Core and mod packs automatically
+You can download the mod with an install script [here](https://lstwomods.github.io/mods).
 
 # Manual Installation
 
@@ -27,7 +29,7 @@ You can use the installer [here](https://github.com/lstwoMODS/lstwoMODSInstaller
 
 2. Install lstwoMODS and dependencies
 
-   Download the files for lstwoMODS Core (`lstwoMODS_Core.dll`, `lstwo.lstwomods.assets`) and Cinematic Unity Explorer (`CinematicUnityExplorer.BepInEx5.Mono.zip`).
+   Download the files for lstwoMODS Core and Cinematic Unity Explorer (`CinematicUnityExplorer.BepInEx5.Mono.zip`).
    Then unzip the `CinematicUnityExplorer.BepInEx5.Mono.zip` file and find the dll files inside.
 
    Take all files and put them into the `<Game Folder>\BepInEx\plugins\` folder. (If it doesn't exist boot up the game or create it yourself)
