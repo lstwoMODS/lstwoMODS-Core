@@ -1,17 +1,14 @@
-using System;
-using Newtonsoft.Json;
-
 namespace lstwoMODS.ImGui.Shared.Messages
 {
     public class GameShutDownMessage
     {
-        public IpcMessage Serialize()
+        // Signal-only message: the type name is the whole payload, so the body stays empty.
+        public IpcMessage Serialize() => new IpcMessage
         {
-            return new IpcMessage
-            {
-                Type = nameof(GameShutDownMessage),
-                Payload = ""
-            };
-        }
+            Type    = nameof(GameShutDownMessage),
+            Payload = ""
+        };
+
+        public static GameShutDownMessage Deserialize(IpcMessage message) => new GameShutDownMessage();
     }
 }

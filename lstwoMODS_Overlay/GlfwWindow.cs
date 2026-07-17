@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 using Hexa.NET.GLFW;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGui.Backends.GLFW;
-using Hexa.NET.OpenGL;
 using HexaGen.Runtime;
 using lstwoMODS.ImGui.Shared;
+using lstwoMODS_Overlay.Backends;
 using GLFWwindowPtr = Hexa.NET.GLFW.GLFWwindowPtr;
 
 using static lstwoMODS_Overlay.Logger;
@@ -21,24 +21,46 @@ public abstract class GlfwWindow : Window
     protected WindowType Type;
 
     public GLFWwindowPtr GlfwWindowPtr;
-    protected GL GL;
-    protected string GlslVersion;
+    protected IRenderBackend Backend;
     protected IntPtr TargetHwnd = IntPtr.Zero;
 
     protected (float, float, float, float) ClearColor;
+
+    /// <summary>
+    /// True when the current frame has UI that requires keyboard/mouse focus (e.g. an open
+    /// chat input). While set, <see cref="TrackTargetWindow"/> continuously keeps the overlay in
+    /// the OS foreground (re-grabbing it if the game steals it back) and never pushes focus to
+    /// the game. Set each frame by the render loop.
+    /// </summary>
+    protected volatile bool OverlayWantsInput;
+
+    /// <summary>
+    /// One-shot request, set by QueueFocusOverlayWindow, that lets the overlay start grabbing the
+    /// foreground immediately (e.g. chat opened via hotkey) before the element's RequireInput
+    /// state has propagated over IPC and raised <see cref="OverlayWantsInput"/>.
+    /// <see cref="TrackTargetWindow"/> retires it once <see cref="OverlayWantsInput"/> has taken
+    /// over so it can't linger and fight a later game-focus request.
+    /// </summary>
+    protected volatile bool FocusSelfRequested;
+
     private bool _lastTopMostState;
     private bool _lastHoverState;
     private long _lastForeground;
+    private int _lastFbWidth, _lastFbHeight;
 
     private string _windowTitle;
     private string _iconPath;
 
-    public GlfwWindow((float, float, float, float) clearColor, WindowType type, string windowTitle, int width, int height, string iconPath = "")
+    public bool AllowClose { get; set; }
+
+    public GlfwWindow((float, float, float, float) clearColor, WindowType type, string windowTitle, int width, int height, string iconPath = "", bool allowClose = false, IRenderBackend? backend = null)
     {
         ClearColor = clearColor;
         Type = type;
         _windowTitle = windowTitle;
         _iconPath = iconPath;
+        AllowClose = allowClose;
+        Backend = backend ?? new OpenGL3Backend();
     }
     
     public static unsafe void SetIcon(GLFWwindowPtr window, string path)
@@ -54,7 +76,6 @@ public abstract class GlfwWindow : Window
         Marshal.Copy(data.Scan0, pixels, 0, byteCount);
         bitmap.UnlockBits(data);
 
-        // Convert ARGB -> RGBA (GLFW expects RGBA)
         for (var i = 0; i < pixels.Length; i += 4)
         {
             var a = pixels[i + 3];
@@ -107,10 +128,7 @@ public abstract class GlfwWindow : Window
         }
 
         GLFW.Init();
-        GlslVersion = "#version 150";
-        GLFW.WindowHint(GLFW.GLFW_CONTEXT_VERSION_MAJOR, 3);
-        GLFW.WindowHint(GLFW.GLFW_CONTEXT_VERSION_MINOR, 2);
-        GLFW.WindowHint(GLFW.GLFW_OPENGL_PROFILE, GLFW.GLFW_OPENGL_CORE_PROFILE);
+        Backend.ConfigureGlfwHints();
 
         if (Type == WindowType.Overlay)
         {
@@ -125,30 +143,32 @@ public abstract class GlfwWindow : Window
 
         MainScale = GetMainScale();
         GlfwWindowPtr = GLFW.CreateWindow((int)(1280 * MainScale), (int)(800 * MainScale), _windowTitle, null, null);
-        
+
         if (GlfwWindowPtr.IsNull)
         {
             LogError("Failed to create GLFW window.");
             GLFW.Terminate();
             return false;
         }
-        
-        GLFW.MakeContextCurrent(GlfwWindowPtr);
+
+        if (Backend.IsOpenGL)
+        {
+            GLFW.MakeContextCurrent(GlfwWindowPtr);
+            GLFW.SwapInterval(1);
+        }
 
         if (!string.IsNullOrEmpty(_iconPath))
         {
             GLFW.ShowWindow(GlfwWindowPtr);
             SetIcon(GlfwWindowPtr, _iconPath);
         }
-        
+
         return true;
     }
 
     protected override bool CreateGraphicsContext()
     {
-        GL = new GL(new GlfwBindingsContext(GlfwWindowPtr));
-        GL.Enable(GLEnableCap.Blend);
-        GL.BlendFunc(GLBlendingFactor.SrcAlpha, GLBlendingFactor.OneMinusSrcAlpha);
+        Backend.Initialize(GlfwWindowPtr);
         return true;
     }
 
@@ -160,7 +180,16 @@ public abstract class GlfwWindow : Window
 
     protected override bool ShouldClose()
     {
-        return GLFW.WindowShouldClose(GlfwWindowPtr) != 0;
+        if (GLFW.WindowShouldClose(GlfwWindowPtr) == 0)
+            return false;
+
+        if (!AllowClose)
+        {
+            GLFW.SetWindowShouldClose(GlfwWindowPtr, 0);
+            return false;
+        }
+
+        return true;
     }
 
     protected override bool IsMinimized()
@@ -170,29 +199,28 @@ public abstract class GlfwWindow : Window
 
     protected override void BeginFrame()
     {
-        GLFW.MakeContextCurrent(GlfwWindowPtr);
-
-        if (Type == WindowType.Overlay)
+        unsafe
         {
-            GL.ClearColor(0,0,0,0);
+            int fbW, fbH;
+            GLFW.GetFramebufferSize(GlfwWindowPtr, &fbW, &fbH);
+            if (fbW != _lastFbWidth || fbH != _lastFbHeight)
+            {
+                _lastFbWidth = fbW;
+                _lastFbHeight = fbH;
+                Backend.OnResize(fbW, fbH);
+            }
         }
-        else
-        {
-            GL.ClearColor(ClearColor.Item1, ClearColor.Item2, ClearColor.Item3, ClearColor.Item4);
-        }
-        
-        GL.Clear(GLClearBufferMask.ColorBufferBit);
+        Backend.BeginFrame(Type == WindowType.Overlay, ClearColor.Item1, ClearColor.Item2, ClearColor.Item3, ClearColor.Item4);
     }
 
     protected override void EndFrame()
     {
-        GLFW.MakeContextCurrent(GlfwWindowPtr);
-        GLFW.SwapBuffers(GlfwWindowPtr);
+        Backend.EndFrame();
     }
 
     protected override void DestroyGraphicsContext()
     {
-        GL.Dispose();
+        Backend.Shutdown();
     }
 
     protected override void DestroyWindow()
@@ -215,26 +243,92 @@ public abstract class GlfwWindow : Window
         if (!GetClientBounds(TargetHwnd, out var rect))
             return;
 
-        var dpi = (uint)GetDpiForWindow(TargetHwnd);
-        var scale = dpi / 96.0f;
-
         var physicalWidth  = rect.right - rect.left;
         var physicalHeight = rect.bottom - rect.top;
 
-        var logicalX = (int)(rect.left / scale);
-        var logicalY = (int)(rect.top / scale);
-        var logicalW = (int)(physicalWidth / scale);
-        var logicalH = (int)(physicalHeight / scale);
+        var monitor = MonitorFromWindow(TargetHwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var mi = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (GetMonitorInfo(monitor, ref mi) && rect.bottom > mi.rcWork.bottom)
+                physicalHeight = mi.rcWork.bottom - rect.top;
+        }
 
-        GLFW.SetWindowPos(GlfwWindowPtr, logicalX, logicalY);
-        GLFW.SetWindowSize(GlfwWindowPtr, logicalW, logicalH);
+        GLFW.SetWindowPos(GlfwWindowPtr, rect.left, rect.top);
+        GLFW.SetWindowSize(GlfwWindowPtr, physicalWidth, physicalHeight - 1);
 
         var hwnd = GLFW.GetWin32Window(GlfwWindowPtr);
         var flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOREDRAW | SWP_NOACTIVATE;
 
-        var hWndInsertAfter = HasVisibleContent() ? GetWindow(TargetHwnd, GW_HWNDPREV) : GetWindow(TargetHwnd, GW_HWNDNEXT);
+        if (GetForegroundWindow() == hwnd)
+        {
+            if (!HasVisibleContent() && !OverlayWantsInput && !FocusSelfRequested)
+            {
+                SetForegroundWindow(TargetHwnd);
+                SetWindowPos(hwnd, GetWindow(TargetHwnd, GW_HWNDNEXT), 0, 0, 0, 0, flags);
+                return;
+            }
 
-        SetWindowPos(hwnd, hWndInsertAfter, 0, 0, 0, 0, flags);
+            FocusSelfRequested = false;
+            if (GetWindow(hwnd, GW_HWNDNEXT) != TargetHwnd)
+                SetWindowPos(TargetHwnd, hwnd, 0, 0, 0, 0, flags);
+            return;
+        }
+
+        if (HasVisibleContent())
+        {
+            ClassifyForeground(hwnd, out var fgIsOurs, out var fgIsGame);
+
+            if (fgIsOurs || fgIsGame)
+            {
+                if (OverlayWantsInput || FocusSelfRequested)
+                {
+                    if (fgIsGame)
+                        FocusOverlayWindow();
+                    else if (OverlayWantsInput)
+                        FocusSelfRequested = false;
+                }
+                else
+                {
+                    FocusSelfRequested = false;
+                    if (fgIsOurs)
+                        SetForegroundWindow(TargetHwnd);
+                }
+            }
+
+            SetWindowPos(hwnd, GetWindow(TargetHwnd, GW_HWNDPREV), 0, 0, 0, 0, flags);
+        }
+        else
+        {
+            SetWindowPos(hwnd, GetWindow(TargetHwnd, GW_HWNDNEXT), 0, 0, 0, 0, flags);
+        }
+    }
+
+    /// <summary>
+    /// Classify the current foreground window relative to the overlay's context.
+    /// <paramref name="fgIsOurs"/> is true when it belongs to the overlay's own process (the main
+    /// window or any ImGui multi-viewport platform window); <paramref name="fgIsGame"/> is true
+    /// when it is the tracked game window or any other window of the game's process. Both are false
+    /// when an unrelated application is in the foreground, which is the signal to stay passive.
+    /// </summary>
+    private void ClassifyForeground(IntPtr overlayHwnd, out bool fgIsOurs, out bool fgIsGame)
+    {
+        fgIsOurs = false;
+        fgIsGame = false;
+
+        var foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero) return;
+
+        if (foreground == TargetHwnd) { fgIsGame = true; return; }
+
+        GetWindowThreadProcessId(foreground,  out var fgPid);
+        if (fgPid == 0) return;
+
+        GetWindowThreadProcessId(overlayHwnd, out var overlayPid);
+        GetWindowThreadProcessId(TargetHwnd,  out var gamePid);
+
+        if (fgPid == overlayPid) fgIsOurs = true;
+        else if (fgPid == gamePid) fgIsGame = true;
     }
     
     private bool GetClientBounds(IntPtr hwnd, out RECT clientRect)
@@ -265,6 +359,24 @@ public abstract class GlfwWindow : Window
     private bool _lastHovering;
 
     protected abstract bool HasVisibleContent();
+
+    /// <summary>
+    /// Toggle mouse/keyboard pass-through for overlay windows.
+    /// When true the overlay is purely visual: mouse clicks fall through to the game and
+    /// the window never steals activation. When false it behaves like a normal window.
+    /// </summary>
+    protected void SetInputPassthrough(bool passthrough)
+    {
+        var hwnd    = GLFW.GetWin32Window(GlfwWindowPtr);
+        var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+
+        SetWindowLong(hwnd, GWL_EXSTYLE, passthrough
+            ? exStyle |  WS_EX_NOACTIVATE
+            : exStyle & ~WS_EX_NOACTIVATE);
+
+        GLFW.SetWindowAttrib(GlfwWindowPtr, GLFW.GLFW_MOUSE_PASSTHROUGH,
+            passthrough ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
+    }
     
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT
@@ -280,9 +392,68 @@ public abstract class GlfwWindow : Window
 
     [DllImport("user32.dll")]
     public static extern bool IsWindow(IntPtr hWnd);
-    
+
     [DllImport("user32.dll")]
-    static extern int GetDpiForWindow(IntPtr hwnd);
+    static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    public void FocusGameWindow()
+    {
+        if (TargetHwnd != IntPtr.Zero && IsWindow(TargetHwnd))
+            SetForegroundWindow(TargetHwnd);
+    }
+
+    /// <summary>
+    /// Bring the overlay's own OS window to the foreground and give it keyboard focus.
+    /// Windows blocks SetForegroundWindow from a process that doesn't own the current
+    /// foreground window, so we briefly AttachThreadInput to the foreground thread to lift
+    /// that restriction. We also clear WS_EX_NOACTIVATE first (the passthrough flag) so the
+    /// window can actually be activated.
+    /// </summary>
+    public void FocusOverlayWindow()
+    {
+        var hwnd = GLFW.GetWin32Window(GlfwWindowPtr);
+        if (hwnd == IntPtr.Zero) return;
+
+        var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_NOACTIVATE);
+        GLFW.SetWindowAttrib(GlfwWindowPtr, GLFW.GLFW_MOUSE_PASSTHROUGH, GLFW.GLFW_FALSE);
+
+        var foreground = GetForegroundWindow();
+        var thisThread = GetCurrentThreadId();
+        var fgThread   = foreground != IntPtr.Zero
+            ? GetWindowThreadProcessId(foreground, out _)
+            : 0u;
+
+        if (fgThread != 0 && fgThread != thisThread)
+        {
+            AttachThreadInput(fgThread, thisThread, true);
+            BringWindowToTop(hwnd);
+            SetForegroundWindow(hwnd);
+            AttachThreadInput(fgThread, thisThread, false);
+        }
+        else
+        {
+            BringWindowToTop(hwnd);
+            SetForegroundWindow(hwnd);
+        }
+
+        GLFW.FocusWindow(GlfwWindowPtr);
+    }
+
+    [DllImport("user32.dll")]
+    static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+    [DllImport("user32.dll")]
+    static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("kernel32.dll")]
+    static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    static extern bool BringWindowToTop(IntPtr hWnd);
     
     [DllImport("user32.dll", SetLastError = true)]
     static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
@@ -290,6 +461,7 @@ public abstract class GlfwWindow : Window
     const int GWL_EXSTYLE = -20;
     const int WS_EX_TRANSPARENT = 0x20;
     const int WS_EX_LAYERED = 0x80000;
+    const int WS_EX_NOACTIVATE = 0x08000000;
 
     [DllImport("user32.dll")]
     static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -298,7 +470,7 @@ public abstract class GlfwWindow : Window
     static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
     [DllImport("user32.dll")]
-    static extern IntPtr GetForegroundWindow();
+    private static extern IntPtr GetForegroundWindow();
 
     private const uint GW_HWNDPREV = 3;
     private const uint GW_HWNDNEXT = 2;
@@ -339,7 +511,24 @@ public abstract class GlfwWindow : Window
     );
 
     const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
-    
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [DllImport("user32.dll")]
+    static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    const uint MONITOR_DEFAULTTONEAREST = 2;
+
     [StructLayout(LayoutKind.Sequential)]
     struct POINT
     {

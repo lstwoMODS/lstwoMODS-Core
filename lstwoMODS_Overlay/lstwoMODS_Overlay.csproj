@@ -45,9 +45,16 @@
       <None Update="icon.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="overlay.config">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="Assets\**">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Hexa.NET.D3D11" Version="1.0.6" />
       <PackageReference Include="Hexa.NET.GLFW" Version="1.0.5" />
       <PackageReference Include="Hexa.NET.ImGui" Version="2.2.9" />
       <PackageReference Include="Hexa.NET.ImGui.Backends" Version="1.0.18" />
@@ -56,6 +63,7 @@
       <PackageReference Include="Hexa.NET.ImGuizmo" Version="2.2.9" />
       <PackageReference Include="Hexa.NET.ImNodes" Version="2.2.9" />
       <PackageReference Include="Hexa.NET.ImPlot" Version="2.2.9" />
+      <PackageReference Include="Hexa.NET.ImPlot3D" Version="2.2.9" />
       <PackageReference Include="Hexa.NET.OpenGL3" Version="1.1.0" />
     </ItemGroup>
 

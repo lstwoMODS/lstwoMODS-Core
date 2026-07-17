@@ -1,47 +1,24 @@
-using System;
-using System.Collections.Generic;
 using lstwoMODS.ImGui.Shared.UI;
-using Newtonsoft.Json;
 
 namespace lstwoMODS.ImGui.Shared.Messages
 {
     public class WindowInitMessage
     {
-        public string Title;
-        public int Width;
-        public int Height;
-        public WindowType WindowType;
-        public BaseUiElement[] Elements;
-        public long FollowWindowHandle;
+        public string            WindowId            { get; set; }
+        public string            Title               { get; set; }
+        public int               Width               { get; set; }
+        public int               Height              { get; set; }
+        public WindowType        WindowType          { get; set; }
+        public BaseUIElementData[] Elements          { get; set; }
+        public long              FollowWindowHandle  { get; set; }
+        public ImGuiConfig       Config              { get; set; } = new ImGuiConfig();
+        public FontDescriptor[]  Fonts               { get; set; } = new FontDescriptor[0];
+        /// <summary>Render backend override. Null means the overlay uses its own overlay.config value.</summary>
+        public string            Backend             { get; set; }
 
-        public IpcMessage Serialize()
-        {
-            var settings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.All,
-            };
-
-            var serialized = JsonConvert.SerializeObject(this, settings);
-            Console.WriteLine(serialized);
-            
-            return new IpcMessage
-            {
-                Type = nameof(WindowInitMessage),
-                Payload = serialized
-            };
-        }
+        public IpcMessage Serialize() => IpcSerializer.Wrap(this);
 
         public static WindowInitMessage Deserialize(IpcMessage message)
-        {
-            var settings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.All,
-            };
-            
-            var deserialized = JsonConvert.DeserializeObject<WindowInitMessage>(message.Payload, settings);
-            Console.WriteLine(deserialized);
-            
-            return deserialized;
-        }
+            => IpcSerializer.Unwrap<WindowInitMessage>(message);
     }
 }

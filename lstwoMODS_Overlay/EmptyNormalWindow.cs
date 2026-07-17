@@ -1,5 +1,4 @@
 using Hexa.NET.GLFW;
-using Hexa.NET.OpenGL;
 using lstwoMODS.ImGui.Shared;
 
 namespace lstwoMODS_Overlay;
@@ -58,8 +57,6 @@ public class EmptyNormalWindow : GlfwWindow
 
     protected override void BeginFrame()
     {
-        GLFW.MakeContextCurrent(GlfwWindowPtr);
-        
         if (GLFW.GetTime() - _lastInputTime > 0.2)
         {
             _r = Lerp(_r, 0.1f, 0.1f);
@@ -67,8 +64,7 @@ public class EmptyNormalWindow : GlfwWindow
             _b = Lerp(_b, 0.1f, 0.1f);
         }
 
-        GL.ClearColor(_r, _g, _b, _a);
-        GL.Clear(GLClearBufferMask.ColorBufferBit);
+        Backend.BeginFrame(false, _r, _g, _b, _a);
     }
     
     float Lerp(float firstFloat, float secondFloat, float by)

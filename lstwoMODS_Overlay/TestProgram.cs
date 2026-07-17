@@ -3,7 +3,9 @@ using Hexa.NET.GLFW;
 using Hexa.NET.ImGui;
 using Hexa.NET.OpenGL;
 using lstwoMODS.ImGui.Shared;
-using GLFWwindowPtr = Hexa.NET.GLFW.GLFWwindowPtr;
+using GLFWwindowPtr    = Hexa.NET.GLFW.GLFWwindowPtr;
+using ImGuiWindowFlags   = Hexa.NET.ImGui.ImGuiWindowFlags;
+using ImGuiDockNodeFlags = Hexa.NET.ImGui.ImGuiDockNodeFlags;
 
 namespace lstwoMODS_Overlay;
 

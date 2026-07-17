@@ -3,11 +3,13 @@ using System.Runtime.CompilerServices;
 using Hexa.NET.GLFW;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGui.Backends.GLFW;
-using Hexa.NET.ImGui.Backends.OpenGL3;
 using Hexa.NET.ImGuizmo;
+using lstwoMODS.ImGui.Shared;
+using lstwoMODS_Overlay.Backends;
 using GLFWmonitorPtr = Hexa.NET.GLFW.GLFWmonitorPtr;
 using GLFWwindowPtr = Hexa.NET.GLFW.GLFWwindowPtr;
-using lstwoMODS.ImGui.Shared;
+using ImGuiConfigFlags = Hexa.NET.ImGui.ImGuiConfigFlags;
+using ImGuiCol = Hexa.NET.ImGui.ImGuiCol;
 using static lstwoMODS_Overlay.Logger;
 
 namespace lstwoMODS_Overlay;
@@ -23,8 +25,8 @@ public class NormalImGuiWindow : GlfwWindow
     private bool _wantsInput;
     private bool _isConfigured;
 
-    public NormalImGuiWindow(string windowId, Action onConfigure, Action onRender, string windowTitle, int width, int height, (float, float, float, float) clearColor = default, WindowType type = WindowType.Normal, string iconPath = "") 
-        : base(clearColor == default ? (0.45f, 0.55f, 0.60f, 1.00f) : clearColor, type, windowTitle, width, height, iconPath)
+    public NormalImGuiWindow(string windowId, Action onConfigure, Action onRender, string windowTitle, int width, int height, (float, float, float, float) clearColor = default, WindowType type = WindowType.Normal, string iconPath = "", bool allowClose = false, IRenderBackend? backend = null)
+        : base(clearColor == default ? (0.45f, 0.55f, 0.60f, 1.00f) : clearColor, type, windowTitle, width, height, iconPath, allowClose, backend)
     {
         _windowId = windowId;
         _onConfigure = onConfigure;
@@ -65,36 +67,35 @@ public class NormalImGuiWindow : GlfwWindow
         }
         
         ImGuiImplGLFW.SetCurrentContext(_imGuiContext);
+        var glfwWindow = Unsafe.As<GLFWwindowPtr, Hexa.NET.ImGui.Backends.GLFW.GLFWwindowPtr>(ref GlfwWindowPtr);
+        var glfwOk = Backend.IsOpenGL
+            ? ImGuiImplGLFW.InitForOpenGL(glfwWindow, true)
+            : ImGuiImplGLFW.InitForOther(glfwWindow, true);
 
-        if (!ImGuiImplGLFW.InitForOpenGL(Unsafe.As<GLFWwindowPtr, Hexa.NET.ImGui.Backends.GLFW.GLFWwindowPtr>(ref GlfwWindowPtr), true))
+        if (!glfwOk)
         {
             Console.WriteLine("Failed to init ImGui Impl GLFW");
             return false;
         }
-        
-        ImGuiImplOpenGL3.SetCurrentContext(_imGuiContext);
-        
-        if (!ImGuiImplOpenGL3.Init(GlslVersion))
+
+        if (!Backend.InitImGuiRenderer())
         {
-            Console.WriteLine("Failed to init ImGui Impl OpenGL3");
+            Console.WriteLine("Failed to init ImGui renderer backend");
             return false;
         }
-        
+
         return true;
     }
 
     protected override void ShutdownImGui()
     {
-        ImGuiImplOpenGL3.Shutdown();
-        ImGuiImplOpenGL3.SetCurrentContext(null);
+        Backend.ShutdownImGuiRenderer();
         ImGuiImplGLFW.Shutdown();
         ImGuiImplGLFW.SetCurrentContext(null);
         ImGui.DestroyContext();
     }
 
-    protected override void OnPreFirstFrame()
-    {
-    }
+    protected override void OnPreFirstFrame() { }
 
     protected override void OnIfMinimized()
     {
@@ -129,25 +130,23 @@ public class NormalImGuiWindow : GlfwWindow
 
     protected override void RenderFrame()
     {
-        ImGuiImplOpenGL3.NewFrame();
+        Backend.NewImGuiFrame();
         ImGuiImplGLFW.NewFrame();
         ImGui.NewFrame();
 
-        _onRender();
-
-        /*if (ImGui.IsAnyItemHovered() || ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
+        try
         {
-            GLFW.SetWindowAttrib(GlfwWindowPtr, GLFW.GLFW_MOUSE_PASSTHROUGH, GLFW.GLFW_TRUE);
+            _onRender();
         }
-        else if (Type == WindowType.Overlay)
+        catch (Exception ex)
         {
-            GLFW.SetWindowAttrib(GlfwWindowPtr, GLFW.GLFW_MOUSE_PASSTHROUGH, GLFW.GLFW_TRUE);
-        }*/
+            CrashGuard.Report("frame render", ex);
+        }
 
         ImGui.Render();
-        
+
         _lastDrawData = ImGui.GetDrawData();
-        ImGuiImplOpenGL3.RenderDrawData(_lastDrawData);
+        Backend.RenderImGuiDrawData(_lastDrawData);
 
         if ((_io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
@@ -161,4 +160,5 @@ public class NormalImGuiWindow : GlfwWindow
         var mon = GLFW.GetPrimaryMonitor();
         return ImGuiImplGLFW.GetContentScaleForMonitor(Unsafe.As<GLFWmonitorPtr, Hexa.NET.ImGui.Backends.GLFW.GLFWmonitorPtr>(ref mon));
     }
+
 }
