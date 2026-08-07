@@ -7,17 +7,17 @@ namespace lstwoMODS_Core.UI.Elements;
 
 public class InputFloat4 : BaseUIElement<InputFloat4>
 {
-    private Ref<Vector4>? _binding;
-    public Action<Vector4>? OnValueChanged;
+    private Action<Vec4>? _pushToBinding;
+    public Action<Vec4>? OnValueChanged;
 
-    public Vector4 Value
+    public Vec4 Value
     {
-        get { var d = (InputFloat4Data)Data; return new Vector4(d.X, d.Y, d.Z, d.W); }
+        get { var d = (InputFloat4Data)Data; return new Vec4(d.X, d.Y, d.Z, d.W); }
         set { var d = (InputFloat4Data)Data; d.X = value.x; d.Y = value.y; d.Z = value.z; d.W = value.w; MarkChanged(); }
     }
 
-    public InputFloat4(string name, Vector4 value = default, string format = "%.3f",
-                       Action<Vector4> onValueChanged = null,
+    public InputFloat4(string name, Vec4 value = default, string format = "%.3f",
+                       Action<Vec4> onValueChanged = null,
                        ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, bool mainThread = true) : base(name)
     {
         Data = new InputFloat4Data { Name = name, X = value.x, Y = value.y, Z = value.z, W = value.w, Format = format, Flags = flags };
@@ -25,9 +25,20 @@ public class InputFloat4 : BaseUIElement<InputFloat4>
         RunCallbacksOnMainThread = mainThread;
     }
 
+    public InputFloat4 WithValue(Ref<Vec4> binding)
+    {
+        _pushToBinding = v => binding.Value = v;
+        Value = binding.Value;
+        binding.Changed += v => Value = v;
+        return this;
+    }
+
+    /// <summary>Binds a Unity-typed ref, for callers that already hold one. Prefer the
+    /// <see cref="Vec4"/> overload for values that get saved: <see cref="Vector4"/> cannot be
+    /// serialized.</summary>
     public InputFloat4 WithValue(Ref<Vector4> binding)
     {
-        _binding = binding;
+        _pushToBinding = v => binding.Value = v;
         Value = binding.Value;
         binding.Changed += v => Value = v;
         return this;
@@ -38,6 +49,6 @@ public class InputFloat4 : BaseUIElement<InputFloat4>
         var old = Value;
         base.ApplyReceivedData(data);
         var nv = Value;
-        if (old != nv) { if (_binding != null) _binding.Value = nv; var v = nv; InvokeCallback(() => OnValueChanged?.Invoke(v)); }
+        if (old != nv) { _pushToBinding?.Invoke(nv); var v = nv; InvokeCallback(() => OnValueChanged?.Invoke(v)); }
     }
 }

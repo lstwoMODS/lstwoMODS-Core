@@ -11,7 +11,7 @@ public class WindowRenderer : UIRenderer
     public bool Open;
     public bool ShowCloseButton;
 
-    private Hexa.NET.ImGui.ImGuiWindowFlags _flags;
+    private ImGuiWindowFlags _flags;
     private float? _nextSizeX, _nextSizeY;
     private float? _nextPosX, _nextPosY;
     private float? _contentSizeX, _contentSizeY;
@@ -35,7 +35,7 @@ public class WindowRenderer : UIRenderer
         ShowCloseButton = d.ShowCloseButton;
         WindowTitle     = d.WindowTitle;
         Children        = d.Children;
-        _flags          = (Hexa.NET.ImGui.ImGuiWindowFlags)(int)d.WindowFlags;
+        _flags          = (ImGuiWindowFlags)(int)d.WindowFlags;
         CopyNextFromData(d);
     }
 
@@ -48,7 +48,7 @@ public class WindowRenderer : UIRenderer
         if (d.Children?.Count > 0) Children = d.Children;
         Open            = d.Open;
         ShowCloseButton = d.ShowCloseButton;
-        _flags          = (Hexa.NET.ImGui.ImGuiWindowFlags)(int)d.WindowFlags;
+        _flags          = (ImGuiWindowFlags)(int)d.WindowFlags;
         CopyNextFromData(d);
     }
 

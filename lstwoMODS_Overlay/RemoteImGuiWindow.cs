@@ -191,11 +191,37 @@ public class RemoteImGuiWindow : NormalImGuiWindow
         }
     }
 
+    // Background (clear color) driven by the plugin config.
+    private SharedImGuiConfig.WindowBackgroundMode _backgroundMode = SharedImGuiConfig.WindowBackgroundMode.MatchImGui;
+    private float[] _backgroundColor = { 0.45f, 0.55f, 0.60f, 1.0f };
+
     public RemoteImGuiWindow(string windowId, Action onConfigure, Action onRender, string windowTitle, int width, int height, (float, float, float, float) clearColor = default, WindowType type = WindowType.Normal, string iconPath = "", bool allowClose = false, Backends.IRenderBackend? backend = null)
         : base(windowId, onConfigure, onRender, windowTitle, width, height, clearColor, type, iconPath, allowClose, backend)
     {
         _onRender    += OnRender;
         _onConfigure += OnConfigure;
+    }
+
+    /// <summary>
+    /// Set the window's clear color from the current background mode. In MatchImGui mode this
+    /// reads the live theme's WindowBg, so it is also refreshed each frame. Harmless for overlay
+    /// windows, which always clear to transparent regardless of ClearColor.
+    /// </summary>
+    private void ApplyClearColor()
+    {
+        switch (_backgroundMode)
+        {
+            case SharedImGuiConfig.WindowBackgroundMode.Custom:
+                var c = _backgroundColor;
+                if (c is { Length: >= 4 })
+                    ClearColor = (c[0], c[1], c[2], c[3]);
+                break;
+
+            default: // MatchImGui
+                var bg = ImGui.GetStyle().Colors[(int)Hexa.NET.ImGui.ImGuiCol.WindowBg];
+                ClearColor = (bg.X, bg.Y, bg.Z, 1.0f);
+                break;
+        }
     }
 
     protected override void ShutdownImGui()
@@ -317,6 +343,10 @@ public class RemoteImGuiWindow : NormalImGuiWindow
 
     public virtual void OnRender()
     {
+        // MatchImGui tracks the live theme, so refresh it every frame (custom/default are static).
+        if (_backgroundMode == SharedImGuiConfig.WindowBackgroundMode.MatchImGui)
+            ApplyClearColor();
+
         while (true)
         {
             FrameStateMessage state;
@@ -976,6 +1006,12 @@ public class RemoteImGuiWindow : NormalImGuiWindow
         io.ConfigDebugHighlightIdConflictsShowItemPicker = config.ConfigDebugHighlightIdConflictsShowItemPicker;
 
         ApplyGlobalStyle(config, style);
+
+        // Window background (clear color)  computed after the theme/global style so MatchImGui
+        // reads the final WindowBg.
+        _backgroundMode  = config.BackgroundMode;
+        _backgroundColor = config.WindowBackgroundColor ?? _backgroundColor;
+        ApplyClearColor();
     }
 
     /// <summary>

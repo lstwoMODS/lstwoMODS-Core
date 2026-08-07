@@ -7,8 +7,9 @@ namespace lstwoMODS_Core.Hacks
     /// <code>
     /// [ModAction("Apply Force")]
     /// void ApplyForce([ModActionParam(WidgetType.Slider, Min = 0, Max = 100)] float magnitude,
-    ///                 [ModActionParam(WidgetType.Input)] Vector3 direction) { }
+    ///                 [ModActionParam(Widget = WidgetType.Input)] Vector3 direction) { }
     /// </code>
+    /// <see cref="Widget"/> can be passed positionally or set by name, whichever reads better.
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class ModActionParamAttribute : Attribute
@@ -16,7 +17,7 @@ namespace lstwoMODS_Core.Hacks
         /// <summary>The label that gets displayed on the option for this param</summary>
         public string Label { get; set; } = null;
         /// <summary>Which widget the auto-builder should use. Defaults to <see cref="WidgetType.Default"/> (auto-select by type).</summary>
-        public WidgetType Widget { get; }
+        public WidgetType Widget { get; set; }
 
         /// <summary>Drag speed for <see cref="WidgetType.Drag"/> widgets. 0 = default (1.0).</summary>
         public float  Speed  { get; set; } = 0f;
@@ -43,9 +44,9 @@ namespace lstwoMODS_Core.Hacks
         Slider,
         /// <summary>InputFloat / InputInt / InputFloat2/3/4 / InputText.</summary>
         Input,
-        /// <summary>ColorEdit3  for Color or Vector3.</summary>
+        /// <summary>ColorEdit3, for Color/Col or Vector3/Vec3.</summary>
         Color3,
-        /// <summary>ColorEdit4  for Color or Vector4.</summary>
+        /// <summary>ColorEdit4, for Color/Col or Vector4/Vec4.</summary>
         Color4,
     }
 }

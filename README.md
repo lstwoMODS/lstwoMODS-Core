@@ -2,37 +2,38 @@
 
 Core UI for lstwoMODS
 
-This is a game independent BepInEx plugin adding Dear ImGui to Unity and my own Azzamods-like Mod Menu framework.
+This is a game independent BepInEx plugin adding a Dear ImGui Overlay to Unity and my own Azzamods-like Mod Menu framework.
+It also includes a macro feature allowing you to hotkey multiple steps, like changing mod settings or triggering actions.
+Macros also allow for different triggers other than hotkeys.
+
+lstwoMODS Core includes a built in style editor allowing you to change the colors and spacing into different theme profiles.
 
 Mostly used for my Wobbly Life mods but can technically be used for anything.
 
-# How To Use
+## How To Use
 
 The menu can be opened in game using F2.
+For configuration or dev documentation check the website.
 
-# Installation Requirements
+## Installation Requirements
 
-Requires [Cinematic Unity Explorer](https://github.com/originalnicodr/CinematicUnityExplorer/releases) and [BepInEx 5.X](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.2)
+Requires [BepInEx 5.X](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.2)
 
-> [!NOTE]
-> lstwoMODS only supports BepInEx 5.X for Mono so far
+## Recommended Installation
 
-# Recommended Installation
+It usually comes bundled with a modpack on places like thunderstore,
+or you can download a zip from the website with all dependencies.
 
-You can download the mod with an install script [here](https://lstwomods.github.io/mods).
-
-# Manual Installation
+## Manual Installation
 
 1. Install BepInEx 5.X
    
    You can find a guide [here](https://docs.bepinex.dev/articles/user_guide/installation/index.html)
 
-2. Install lstwoMODS and dependencies
+2. Install lstwoMODS
 
-   Download the files for lstwoMODS Core and Cinematic Unity Explorer (`CinematicUnityExplorer.BepInEx5.Mono.zip`).
-   Then unzip the `CinematicUnityExplorer.BepInEx5.Mono.zip` file and find the dll files inside.
-
-   Take all files and put them into the `<Game Folder>\BepInEx\plugins\` folder. (If it doesn't exist boot up the game or create it yourself)
+   Download the files for lstwoMODS Core from the [GitHub releases](https://github.com/lstwomods/lstwomods-core/releases).
+   Copy the files from the .zip and paste them into the game folder so that the `<Game>/BepInEx/plugins/lstwoMODS/` folder has all the dll files.
 
 3. Install modpacks
 

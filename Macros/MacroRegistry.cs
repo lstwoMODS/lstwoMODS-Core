@@ -58,9 +58,11 @@ public class MacroMethodDescriptor
 
     /// <summary>The type of the value this step produces as a named output, when that differs from
     /// <see cref="ReturnType"/>. Set this for a step that returns an <see cref="IEnumerator"/> to
-    /// the runner (so it gets yielded) yet still yields a usable value once it completes  a waited
-    /// macro call (Run Macro / If / Switch) returns the callee's Return value this way. Null =
-    /// derive from <see cref="ReturnType"/> (the normal case).</summary>
+    /// the runner (so it gets yielded) yet still yields a usable value once it completes: a waited
+    /// macro call (Run Macro / If / Switch) returns the callee's Return value this way, and a
+    /// plugin step returns its own by handing back a <see cref="MacroValueRoutine"/>. This only
+    /// declares the type for the editor; a bare <see cref="IEnumerator"/> still records no output
+    /// however this is set. Null = derive from <see cref="ReturnType"/> (the normal case).</summary>
     public Type OutputType;
 
     /// <summary>Invoked with one evaluated argument per <see cref="Parameters"/> entry.
@@ -354,33 +356,8 @@ public static class MacroRegistry
             Execute = args => MacroFlow.Wait((float)MacroValues.Coerce(args[0], typeof(float))),
         });
 
-        Register(new MacroMethodDescriptor
-        {
-            Id = "core.runMacro",
-            Label = "Run Macro",
-            Category = "Flow",
-            Parameters = new[]
-            {
-                new MacroParam { Name = "macro", Type = typeof(Macro) },
-                new MacroParam { Name = "wait", Type = typeof(bool) },
-            },
-            ReturnType = typeof(IEnumerator),
-            OutputType = typeof(object), // a waited call surfaces the callee's Return value as this step's output
-            Execute = args =>
-            {
-                // Expr mode makes this an if/loop primitive: an expression that resolves
-                // to "" (or a macro id) picks at run time; null = intentionally run nothing.
-                if (args[0] is not Macro target) return null;
-                var chain = MacroRunner.CurrentChain;
-                // A Toggle macro toggles no matter how it's activated: this call is part
-                // of the same on/off sequence as its hotkey and the editor's play button.
-                var off = MacroManager.AdvanceToggle(target);
-                if ((bool)MacroValues.Coerce(args[1], typeof(bool)))
-                    return MacroRunner.RunNested(target, chain, off);
-                MacroRunner.RunDetached(target, chain, off);
-                return null;
-            },
-        });
+        // Run Macro is a custom-editor step (pick or expression target, optional arguments); see
+        // MacroRunStep, registered at the end of this method alongside the other custom steps.
 
         Register(new MacroMethodDescriptor
         {
@@ -551,7 +528,96 @@ public static class MacroRegistry
             },
         });
 
+        // ── Loops ─────────────────────────────────────────────────────────
+        // Repeat: run a macro a fixed number of times. Each run gets index (1-based) and count as
+        // trigger values, so the body reads them as trigger("index")/trigger("count") (or bare
+        // variables when it declares them via a Called-by-Macro trigger).
+        Register(new MacroMethodDescriptor
+        {
+            Id = "core.repeat",
+            Label = "Repeat",
+            Category = "Flow",
+            PickerLabel = "Repeat (N times)",
+            Parameters = new[]
+            {
+                new MacroParam { Name = "times", Type = typeof(int), PrefersExpression = true },
+                new MacroParam { Name = "macro", Type = typeof(Macro) },
+                new MacroParam { Name = "wait", Type = typeof(bool), CurrentValueGetter = () => true },
+            },
+            ReturnType = typeof(IEnumerator),
+            Execute = args =>
+            {
+                var times = (int)MacroValues.Coerce(args[0], typeof(int));
+                var target = args[1] as Macro;
+                var wait = (bool)MacroValues.Coerce(args[2], typeof(bool));
+                return RepeatRoutine(times, target, wait, MacroRunner.CurrentChain);
+            },
+        });
+
+        // For Each: iterate a collection (an array/list/enumerable from a step output or an
+        // expression) and run a macro per element, handing it item + index (1-based) as trigger
+        // values. A non-enumerable value runs the body once with that single item.
+        Register(new MacroMethodDescriptor
+        {
+            Id = "core.forEach",
+            Label = "For Each",
+            Category = "Flow",
+            PickerLabel = "For Each (item in list)",
+            Parameters = new[]
+            {
+                new MacroParam { Name = "items", Type = typeof(object), PrefersExpression = true },
+                new MacroParam { Name = "macro", Type = typeof(Macro) },
+                new MacroParam { Name = "wait", Type = typeof(bool), CurrentValueGetter = () => true },
+            },
+            ReturnType = typeof(IEnumerator),
+            Execute = args =>
+            {
+                var target = args[1] as Macro;
+                var wait = (bool)MacroValues.Coerce(args[2], typeof(bool));
+                return ForEachRoutine(args[0], target, wait, MacroRunner.CurrentChain);
+            },
+        });
+
+        MacroRunStep.Register();
         MacroSwitchStep.Register();
+    }
+
+    private static readonly StringComparer LoopKeyCmp = StringComparer.OrdinalIgnoreCase;
+
+    private static IEnumerator RepeatRoutine(int times, Macro target, bool wait, MacroCallChain chain)
+    {
+        if (target == null || times <= 0) yield break;
+        for (var i = 1; i <= times; i++)
+        {
+            if (chain != null && chain.Stopped) yield break;
+            var values = new Dictionary<string, object>(LoopKeyCmp) { ["index"] = i, ["count"] = times };
+            if (wait) yield return MacroRunner.RunNested(target, chain, false, values);
+            else MacroRunner.RunDetached(target, chain, false, values);
+        }
+    }
+
+    private static IEnumerator ForEachRoutine(object items, Macro target, bool wait, MacroCallChain chain)
+    {
+        if (target == null || items == null) yield break;
+
+        var i = 0;
+        foreach (var item in AsEnumerable(items))
+        {
+            if (chain != null && chain.Stopped) yield break;
+            i++;
+            var values = new Dictionary<string, object>(LoopKeyCmp) { ["item"] = item, ["index"] = i };
+            if (wait) yield return MacroRunner.RunNested(target, chain, false, values);
+            else MacroRunner.RunDetached(target, chain, false, values);
+        }
+    }
+
+    /// <summary>Flatten a value for For Each: an enumerable yields its elements; a string is a
+    /// single item (not its characters); anything else is one item.</summary>
+    private static IEnumerable AsEnumerable(object items)
+    {
+        if (items is string) return new[] { items };
+        if (items is IEnumerable e) return e.Cast<object>();
+        return new[] { items };
     }
 
     /// <summary>Shared macro-dispatch for the If and Switch steps: run <paramref name="target"/>

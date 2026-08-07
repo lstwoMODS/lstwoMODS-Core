@@ -21,7 +21,7 @@ public class ComboRenderer : UIRenderer
     {
         var d = (ComboData)data;
         Data = d; Name = d.Name;
-        _items         = d.Items ?? _items; // keep existing items if update omits them
+        _items         = d.Items ?? _items;
         _selectedIndex = d.SelectedIndex;
         _flags         = (ImGuiComboFlags)(int)d.Flags;
     }
@@ -30,7 +30,7 @@ public class ComboRenderer : UIRenderer
     {
         if (_items == null)
         {
-            Hexa.NET.ImGui.ImGui.TextDisabled($"{Data.Name} (no items)");
+            ImGui.TextDisabled($"{Data.Name} (no items)");
             return;
         }
         ImGui.Combo(Data.Name, ref _selectedIndex, _items, _items.Length);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using lstwoMODS.ImGui.Shared;
 
 namespace lstwoMODS_Overlay;
@@ -40,6 +41,11 @@ public class PluginManager
         {
             try
             {
+                // Strip the "Mark of the Web" so downloaded plugin DLLs load
+                // without the user having to Unblock each one by hand. Equivalent
+                // to the "Unblock" checkbox in the file's Properties dialog.
+                Unblock(dll);
+
                 var asm = Assembly.LoadFrom(dll);
                 foreach (var type in asm.GetTypes())
                 {
@@ -55,6 +61,20 @@ public class PluginManager
                 Logger.Log($"[PluginManager] Failed to load plugin DLL '{Path.GetFileName(dll)}': {ex.Message}");
             }
         }
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteFile(string name);
+
+    /// <summary>
+    /// Remove the Zone.Identifier alternate data stream (Mark of the Web) from a
+    /// file. No-op if the file was never blocked. Best-effort: failures are ignored.
+    /// </summary>
+    private static void Unblock(string path)
+    {
+        try { DeleteFile(path + ":Zone.Identifier"); }
+        catch { /* best effort */ }
     }
 
     /// <summary>Notify all plugins that a new window has been created.</summary>

@@ -39,7 +39,9 @@ public class DragSourceRenderer : UIRenderer
             Window.RenderSingleElement(child);
         ImGui.EndGroup();
 
-        if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceAllowNullId))
+        // SourceNoHoldToOpenOthers: stops headers and tree nodes passed over during the drag
+        // from opening themselves after a hold, see CollapsingHeaderRenderer for the rationale.
+        if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceAllowNullId | ImGuiDragDropFlags.SourceNoHoldToOpenOthers))
         {
             var bytes = Encoding.UTF8.GetBytes(_payloadData ?? "");
             fixed (byte* ptr = bytes)

@@ -40,9 +40,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="CinematicUnityExplorer.BIE5.Mono">
-            <HintPath>lib\CinematicUnityExplorer.BIE5.Mono.dll</HintPath>
-        </Reference>
         <Reference Include="netstandard">
             <HintPath>lib\netstandard.dll</HintPath>
         </Reference>

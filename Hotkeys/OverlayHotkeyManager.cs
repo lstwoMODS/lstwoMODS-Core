@@ -20,6 +20,10 @@ namespace lstwoMODS_Core.Hotkeys
         /// <summary>
         /// Register a hotkey. If a saved binding exists in config it overrides
         /// <paramref name="defaultKey"/>/<paramref name="defaultModifiers"/>.
+        ///
+        /// With <c>gameOnly</c> the hotkey fires only from the in-game input path: a press that lands
+        /// on the overlay window is ignored, so a bind that acts on the game world doesn't reach
+        /// through while the user is working in the overlay's own UI.
         /// </summary>
         public void Register(
             string          id,
@@ -27,7 +31,8 @@ namespace lstwoMODS_Core.Hotkeys
             KeyCode         defaultKey,
             HotkeyModifiers defaultModifiers,
             Action          onPressed,
-            bool            excluded = false)
+            bool            excluded = false,
+            bool            gameOnly = false)
         {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("id must not be null or empty", nameof(id));
 
@@ -45,12 +50,13 @@ namespace lstwoMODS_Core.Hotkeys
                 mods = savedMods;
             }
 
-            if (KeyMapper.ToImGui(key) == ImGuiKey.None)
+            // Game-only hotkeys never take the overlay path, so a missing mapping costs them nothing.
+            if (!gameOnly && KeyMapper.ToImGui(key) == ImGuiKey.None)
                 UnityEngine.Debug.LogWarning($"[OverlayHotkeyManager] Key '{key}' for hotkey '{id}' has no GLFW mapping  overlay input path will not fire for this hotkey.");
 
             lock (_lock)
             {
-                _hotkeys[id]       = new OverlayHotkey(id, displayName, key, mods, onPressed, excluded);
+                _hotkeys[id]       = new OverlayHotkey(id, displayName, key, mods, onPressed, excluded, gameOnly);
                 _configEntries[id] = entry;
             }
 
@@ -136,6 +142,7 @@ namespace lstwoMODS_Core.Hotkeys
 
             foreach (var hk in snapshot)
             {
+                if (hk.GameOnly)                           continue;
                 if (KeyMapper.ToImGui(hk.Key) != imguiKey) continue;
                 if (hk.Modifiers             != modifiers) continue;
                 var captured = hk;
@@ -157,8 +164,12 @@ namespace lstwoMODS_Core.Hotkeys
             {
                 var keys = new HashSet<ImGuiKey>();
                 
+                // Game-only hotkeys are dropped here rather than filtered on arrival: the overlay
+                // has no reason to watch a key it must never report. A key shared with a non-game-only
+                // hotkey still makes the list through that one.
                 foreach (var hk in _hotkeys.Values)
                 {
+                    if (hk.GameOnly) continue;
                     var g = KeyMapper.ToImGui(hk.Key);
                     if (g != ImGuiKey.None) keys.Add(g);
                 }

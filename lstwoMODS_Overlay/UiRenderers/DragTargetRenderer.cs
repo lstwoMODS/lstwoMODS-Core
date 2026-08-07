@@ -50,6 +50,8 @@ public class DragTargetRenderer : UIRenderer
         var rectMin = ImGui.GetItemRectMin();
         var rectMax = ImGui.GetItemRectMax();
         var after   = ImGui.GetMousePos().X >= (rectMin.X + rectMax.X) * 0.5f;
+        // Centred in the spacing gap, not flush against this element, see CollapsingHeaderRenderer.
+        var gap     = ImGui.GetStyle().ItemSpacing.X * 0.5f;
 
         foreach (var type in _acceptTypes)
         {
@@ -62,7 +64,7 @@ public class DragTargetRenderer : UIRenderer
 
             if (_insertBetween)
             {
-                var x = after ? rectMax.X : rectMin.X;
+                var x = after ? rectMax.X + gap : rectMin.X - gap;
                 ImGui.GetWindowDrawList().AddLine(
                     new Vector2(x, rectMin.Y), new Vector2(x, rectMax.Y),
                     ImGui.GetColorU32(ImGuiCol.DragDropTarget), 3f);

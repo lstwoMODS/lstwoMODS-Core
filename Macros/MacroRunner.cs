@@ -64,6 +64,52 @@ public sealed class MacroResultRoutine : IEnumerator
 }
 
 /// <summary>
+/// A step coroutine that produces a value. A step whose <see cref="MacroMethodDescriptor.Execute"/>
+/// returns a bare <see cref="IEnumerator"/> gets yielded but records no output; wrap the routine in
+/// one of these and assign <see cref="Result"/> before it finishes to give the step an output that
+/// later steps can read through <c>prev</c>, the step-output picker or a named output.
+/// Declare the type on <see cref="MacroMethodDescriptor.OutputType"/> so the editor types it.
+/// <code>
+/// Execute = _ =>
+/// {
+///     var chain = MacroRunner.CurrentChain;      // capture here, it is null inside the routine
+///     return new MacroValueRoutine(r => Await(r, chain));
+/// },
+/// OutputType = typeof(bool),
+///
+/// static IEnumerator Await(MacroValueRoutine r, MacroCallChain chain)
+/// {
+///     while (!Shop.Settled)
+///     {
+///         if (chain != null &amp;&amp; chain.Stopped) yield break;
+///         yield return null;
+///     }
+///     r.Result = Shop.LastSucceeded;
+/// }
+/// </code>
+/// </summary>
+public sealed class MacroValueRoutine : IEnumerator
+{
+    private readonly IEnumerator _inner;
+
+    /// <summary>The step's output. Assign it before the routine finishes; a routine that ends
+    /// without setting it (or that is cut short by a Stop) leaves the output null.</summary>
+    public object Result { get; set; }
+
+    /// <param name="body">Builds the routine. It is handed this instance so it can assign
+    /// <see cref="Result"/>, which is why it is a factory rather than a plain enumerator.</param>
+    public MacroValueRoutine(Func<MacroValueRoutine, IEnumerator> body)
+    {
+        if (body == null) throw new ArgumentNullException(nameof(body));
+        _inner = body(this) ?? throw new ArgumentException("body returned no routine.", nameof(body));
+    }
+
+    public object Current => _inner.Current;
+    public bool MoveNext() => _inner.MoveNext();
+    public void Reset() => _inner.Reset();
+}
+
+/// <summary>
 /// Executes a macro's steps in order inside a main-thread coroutine. A failed step
 /// aborts the rest of the run; a macro that is still running ignores new run requests.
 /// </summary>
@@ -152,9 +198,13 @@ public static class MacroRunner
     /// <see cref="MacroResultRoutine.ReturnValue"/> for whatever the callee's Return step handed
     /// back. The runner does this automatically, so a waited Run Macro / If / Switch step's output
     /// is the called macro's return value.</returns>
-    public static MacroResultRoutine RunNested(Macro macro, MacroCallChain chain, bool offSteps = false)
+    /// <param name="triggerValues">Named values to hand the sub-run (a caller's arguments, a
+    /// loop's item/index), surfaced to its expressions exactly as a trigger's outputs are:
+    /// bare variables when the callee's trigger declares them, always via <c>trigger("name")</c>.</param>
+    public static MacroResultRoutine RunNested(Macro macro, MacroCallChain chain, bool offSteps = false,
+        IReadOnlyDictionary<string, object> triggerValues = null)
     {
-        var ctx = new MacroRunContext();
+        var ctx = new MacroRunContext { TriggerValues = triggerValues ?? MacroRunContext.NoTrigger };
         var routine = RunRoutine(macro, offSteps ? macro.OffSteps : macro.Steps, chain ?? new MacroCallChain(), root: false, ctx);
         return new MacroResultRoutine(routine, ctx);
     }
@@ -165,7 +215,8 @@ public static class MacroRunner
     /// calling step. Entries from earlier frames can never match and are dropped.</summary>
     /// <param name="offSteps">Run the Off list; pass <see cref="MacroManager.AdvanceToggle"/>
     /// so the call behaves like every other way of firing a Toggle macro.</param>
-    public static void RunDetached(Macro macro, MacroCallChain parent, bool offSteps = false)
+    public static void RunDetached(Macro macro, MacroCallChain parent, bool offSteps = false,
+        IReadOnlyDictionary<string, object> triggerValues = null)
     {
         if (macro == null || parent?.Token.Stopped == true) return;
         var chain = new MacroCallChain();
@@ -179,7 +230,8 @@ public static class MacroRunner
         // Checked here, before the coroutine starts, so the loop error surfaces as the
         // calling step's failure (Unity swallows exceptions thrown inside coroutines).
         GuardChain(macro, chain);
-        Plugin._StartCoroutine(RunRoutine(macro, offSteps ? macro.OffSteps : macro.Steps, chain, root: false, new MacroRunContext()));
+        var ctx = new MacroRunContext { TriggerValues = triggerValues ?? MacroRunContext.NoTrigger };
+        Plugin._StartCoroutine(RunRoutine(macro, offSteps ? macro.OffSteps : macro.Steps, chain, root: false, ctx));
     }
 
     /// <summary>Throws when entering <paramref name="macro"/> would exceed the same-frame
@@ -287,8 +339,14 @@ public static class MacroRunner
                 if (!failed && result is IEnumerator nested)
                 {
                     yield return Guarded(nested, token, ex => { Fail(macro, step, ex); failed = true; });
-                    // A waited macro call carries its Return value out; any other coroutine (wait) has none.
-                    result = nested is MacroResultRoutine rr ? rr.ReturnValue : null;
+                    // A waited macro call carries its Return value out and a plugin step can carry
+                    // its own; any other coroutine (a plain wait) has none.
+                    result = nested switch
+                    {
+                        MacroResultRoutine waited => waited.ReturnValue,
+                        MacroValueRoutine value   => value.Result,
+                        _                         => null,
+                    };
                 }
 
                 if (failed) { runFailed = true; break; }

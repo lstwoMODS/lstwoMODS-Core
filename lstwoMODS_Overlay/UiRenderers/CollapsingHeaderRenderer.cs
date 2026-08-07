@@ -73,9 +73,14 @@ public class CollapsingHeaderRenderer : UIRenderer
 
         _isOpen = open;
 
-        // Drag & drop applies to the header item just rendered  the bar only, not the
+        // Drag & drop applies to the header item just rendered: the bar only, not the
         // open body. Both must run before anything else changes ImGui's "last item".
-        if (_dragPayloadType != null && ImGui.BeginDragDropSource())
+        //
+        // SourceNoHoldToOpenOthers turns off ImGui's hold-to-open behaviour for headers and
+        // tree nodes: without it, holding a reorder drag over a collapsed header for ~0.7s
+        // toggles it open. Nothing here is ever dropped *into* a header, only above or below
+        // one, so that hold has nothing to offer but surprise.
+        if (_dragPayloadType != null && ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceNoHoldToOpenOthers))
         {
             var bytes = Encoding.UTF8.GetBytes(_dragPayloadData ?? "");
             fixed (byte* ptr = bytes)
@@ -89,11 +94,16 @@ public class CollapsingHeaderRenderer : UIRenderer
         {
             // Insert-between semantics: the mouse's half of the header bar decides
             // above/below, and a line is drawn at that edge instead of ImGui's
-            // default whole-item highlight  so a drag hovering near the boundary
+            // default whole-item highlight, so a drag hovering near the boundary
             // of two headers reads as "drop into the gap between them".
             var rectMin = ImGui.GetItemRectMin();
             var rectMax = ImGui.GetItemRectMax();
             var below   = ImGui.GetMousePos().Y >= (rectMin.Y + rectMax.Y) * 0.5f;
+
+            // Half the item spacing puts the line in the middle of the gap between the two
+            // headers rather than flush against this one's edge, where it reads as belonging
+            // to this header instead of to the space between them.
+            var gap = ImGui.GetStyle().ItemSpacing.Y * 0.5f;
 
             foreach (var type in _acceptDropTypes)
             {
@@ -102,7 +112,7 @@ public class CollapsingHeaderRenderer : UIRenderer
                 if (payload.IsNull) continue;
                 if (payload.Data == null || payload.DataSize <= 0) continue;
 
-                var y = below ? rectMax.Y : rectMin.Y;
+                var y = below ? rectMax.Y + gap : rectMin.Y - gap;
                 ImGui.GetWindowDrawList().AddLine(
                     new Vector2(rectMin.X, y), new Vector2(rectMax.X, y),
                     ImGui.GetColorU32(ImGuiCol.DragDropTarget), 3f);

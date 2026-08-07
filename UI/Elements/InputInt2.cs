@@ -7,17 +7,17 @@ namespace lstwoMODS_Core.UI.Elements;
 
 public class InputInt2 : BaseUIElement<InputInt2>
 {
-    private Ref<Vector2Int>? _binding;
-    public Action<Vector2Int>? OnValueChanged;
+    private Action<Vec2Int>? _pushToBinding;
+    public Action<Vec2Int>? OnValueChanged;
 
-    public Vector2Int Value
+    public Vec2Int Value
     {
-        get { var d = (InputInt2Data)Data; return new Vector2Int(d.X, d.Y); }
+        get { var d = (InputInt2Data)Data; return new Vec2Int(d.X, d.Y); }
         set { var d = (InputInt2Data)Data; d.X = value.x; d.Y = value.y; MarkChanged(); }
     }
 
-    public InputInt2(string name, Vector2Int value = default,
-                     Action<Vector2Int> onValueChanged = null,
+    public InputInt2(string name, Vec2Int value = default,
+                     Action<Vec2Int> onValueChanged = null,
                      ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, bool mainThread = true) : base(name)
     {
         Data = new InputInt2Data { Name = name, X = value.x, Y = value.y, Flags = flags };
@@ -25,9 +25,20 @@ public class InputInt2 : BaseUIElement<InputInt2>
         RunCallbacksOnMainThread = mainThread;
     }
 
+    public InputInt2 WithValue(Ref<Vec2Int> binding)
+    {
+        _pushToBinding = v => binding.Value = v;
+        Value = binding.Value;
+        binding.Changed += v => Value = v;
+        return this;
+    }
+
+    /// <summary>Binds a Unity-typed ref, for callers that already hold one. Prefer the
+    /// <see cref="Vec2Int"/> overload for values that get saved: it serializes as a plain
+    /// {"X":..,"Y":..} object rather than dragging Unity's derived properties along.</summary>
     public InputInt2 WithValue(Ref<Vector2Int> binding)
     {
-        _binding = binding;
+        _pushToBinding = v => binding.Value = v;
         Value = binding.Value;
         binding.Changed += v => Value = v;
         return this;
@@ -38,6 +49,6 @@ public class InputInt2 : BaseUIElement<InputInt2>
         var old = Value;
         base.ApplyReceivedData(data);
         var nv = Value;
-        if (old != nv) { if (_binding != null) _binding.Value = nv; var v = nv; InvokeCallback(() => OnValueChanged?.Invoke(v)); }
+        if (old != nv) { _pushToBinding?.Invoke(nv); var v = nv; InvokeCallback(() => OnValueChanged?.Invoke(v)); }
     }
 }

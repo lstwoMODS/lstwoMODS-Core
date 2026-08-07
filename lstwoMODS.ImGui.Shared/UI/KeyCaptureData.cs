@@ -18,6 +18,18 @@ namespace lstwoMODS.ImGui.Shared.UI
         /// <summary>Mod→overlay. When true, capture continuously without requiring a click.</summary>
         public bool AlwaysListen { get; set; } = false;
 
+        /// <summary>
+        /// Mod→overlay. When true the button width matches <c>ImGui.CalcItemWidth()</c> instead of
+        /// stretching across the row, so it lines up with the sliders and inputs around it.
+        /// </summary>
+        public bool UseContentWidth { get; set; } = false;
+
+        /// <summary>
+        /// Mod→overlay. Drawn after the button on the same line, which is where ImGui puts the
+        /// label of every other input. Null or empty draws nothing.
+        /// </summary>
+        public string Label { get; set; }
+
         /// <summary>Mod→overlay. Bump to start a fresh session: stop listening and show
         /// <see cref="DisplayText"/> again (forgetting any locally shown captured combo).</summary>
         public int ResetVersion { get; set; }

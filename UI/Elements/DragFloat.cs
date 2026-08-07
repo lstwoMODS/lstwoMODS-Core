@@ -1,4 +1,5 @@
 using System;
+using lstwoMODS.ImGui.Shared;
 using lstwoMODS.ImGui.Shared.UI;
 
 namespace lstwoMODS_Core.UI.Elements;
@@ -22,7 +23,9 @@ public class DragFloat : BaseUIElement<DragFloat>
     /// When true (default), OnValueChanged fires on Unity's main thread via Plugin.Update().
     /// Set false to fire immediately on the IPC thread  survives game freezes but unsafe for Unity APIs.
     /// </param>
-    public DragFloat(string name, float value = 0f, float speed = 1f, float min = 0f, float max = 0f, string format = "%.3f", Action<float> onValueChanged = null, bool mainThread = true) : base(name)
+    public DragFloat(string name, float value = 0f, float speed = 1f, float min = 0f, float max = 0f,
+                     string format = "%.3f", Action<float> onValueChanged = null,
+                     ImGuiSliderFlags flags = ImGuiSliderFlags.None, bool mainThread = true) : base(name)
     {
         Data = new DragFloatData
         {
@@ -31,7 +34,8 @@ public class DragFloat : BaseUIElement<DragFloat>
             Speed  = speed,
             Min    = min,
             Max    = max,
-            Format = format
+            Format = format,
+            Flags  = flags
         };
 
         OnValueChanged           = onValueChanged;

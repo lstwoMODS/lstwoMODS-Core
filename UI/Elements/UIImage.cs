@@ -28,7 +28,7 @@ public class UIImage : BaseUIElement<UIImage>
     }
 
     /// <summary>Tint color multiplied over the image. Chainable.</summary>
-    public UIImage WithTint(Color color)
+    public UIImage WithTint(Col color)
     {
         var d = (ImageData)Data;
         d.TintR = color.r; d.TintG = color.g; d.TintB = color.b; d.TintA = color.a;
@@ -68,13 +68,13 @@ public class UIImageButton : BaseUIElement<UIImageButton>
         d.UV0X = u0; d.UV0Y = v0; d.UV1X = u1; d.UV1Y = v1;
         return this;
     }
-    public UIImageButton WithTint(Color color)
+    public UIImageButton WithTint(Col color)
     {
         var d = (ImageData)Data;
         d.TintR = color.r; d.TintG = color.g; d.TintB = color.b; d.TintA = color.a;
         return this;
     }
-    public UIImageButton WithBackground(Color color)
+    public UIImageButton WithBackground(Col color)
     {
         var d = (ImageData)Data;
         d.BgR = color.r; d.BgG = color.g; d.BgB = color.b; d.BgA = color.a;

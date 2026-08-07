@@ -34,7 +34,7 @@ public class TextColored : BaseUIElement<TextColored>
 {
     private Ref<string>? _binding;
 
-    public TextColored(string name, string text, Color color) : base(name)
+    public TextColored(string name, string text, Col color) : base(name)
     {
         Data = new TextData { Name = name, Text = text, Variant = TextType.TextColored, R = color.r, G = color.g, B = color.b, A = color.a };
     }

@@ -78,6 +78,19 @@ public static class MacroTypes
     public static MacroTypeDescriptor For(Type type)
         => type != null && _byType.TryGetValue(type, out var d) ? d : null;
 
+    /// <summary>Resolve a registered type by its <see cref="MacroTypeDescriptor.DisplayName"/> or the
+    /// CLR type name (case-insensitive), e.g. "Player" -> PlayerRef. Null when nothing matches. Used
+    /// to parse a human-typed type name in a macro parameter spec ("target:Player").</summary>
+    public static Type ByName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        name = name.Trim();
+        var match = _byType.Values.FirstOrDefault(d =>
+            string.Equals(d.DisplayName, name, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(d.Type.Name, name, StringComparison.OrdinalIgnoreCase));
+        return match?.Type;
+    }
+
     // ── Selection strings ─────────────────────────────────────────────────
     // A pick made through a type's modes, flattened to one string ("local", "byName:Bob") so it
     // can live in a string-only store  a trigger's config dictionary. Step arguments keep the

@@ -124,6 +124,7 @@ public static class MacroExpressions
         Fn("vec",   vec3);
         Fn("vec3",  vec3); // alias: the parameter label reads "vec3" (FriendlyTypeName), so the name should exist
         Fn("vec2",  (Func<object, object, UnityEngine.Vector2>)((x, y) => new UnityEngine.Vector2(F(x), F(y))));
+        Fn("vec4",  (Func<object, object, object, object, UnityEngine.Vector4>)((x, y, z, w) => new UnityEngine.Vector4(F(x), F(y), F(z), F(w))));
         Fn("dist",  (Func<UnityEngine.Vector3, UnityEngine.Vector3, float>)UnityEngine.Vector3.Distance);
         Fn("dir",   (Func<UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector3>)((from, to) => (to - from).normalized));
         Fn("vlerp", (Func<UnityEngine.Vector3, UnityEngine.Vector3, double, UnityEngine.Vector3>)((a, b, t) => UnityEngine.Vector3.Lerp(a, b, (float)t)));
@@ -136,6 +137,14 @@ public static class MacroExpressions
         i.Reference(typeof(UnityEngine.Quaternion));
         i.Reference(typeof(UnityEngine.Color));
         i.Reference(typeof(UnityEngine.Mathf));
+
+        // The serializable flavours, for expressions written against a Vec2/Col parameter.
+        // The constructors above still hand back Unity types; MacroValues.Coerce converts
+        // between the two, so either spelling works wherever the other one did.
+        i.Reference(typeof(Vec2));
+        i.Reference(typeof(Vec3));
+        i.Reference(typeof(Vec4));
+        i.Reference(typeof(Col));
 
         // Plugin-registered functions and types, re-applied so they survive a rebuild.
         foreach (var kv in _customFunctions) Fn(kv.Key, kv.Value);

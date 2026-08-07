@@ -13,6 +13,8 @@ public class KeyCaptureRenderer : UIRenderer
     private string _display;        // idle label, or the captured combo once one exists
     private string _listeningText;
     private bool   _alwaysListen;
+    private bool   _contentWidth;   // size to CalcItemWidth instead of stretching the row
+    private string _label;          // drawn after the button, ImGui's usual label position
     private bool   _listening;      // overlay-local: toggled by clicking the button
     private bool   _hasCaptured;    // a combo was captured this session (show it, not the prompt)
     private int    _appliedReset;
@@ -29,6 +31,8 @@ public class KeyCaptureRenderer : UIRenderer
         _display       = d.DisplayText;
         _listeningText = d.ListeningText;
         _alwaysListen  = d.AlwaysListen;
+        _contentWidth  = d.UseContentWidth;
+        _label         = d.Label;
         _appliedReset  = d.ResetVersion;
     }
 
@@ -38,6 +42,8 @@ public class KeyCaptureRenderer : UIRenderer
         Data = d; Name = d.Name;
         _listeningText = d.ListeningText;
         _alwaysListen  = d.AlwaysListen;
+        _contentWidth  = d.UseContentWidth;
+        _label         = d.Label;
 
         // A fresh session: stop listening, forget the captured combo, show the idle text.
         if (d.ResetVersion != _appliedReset)
@@ -61,8 +67,22 @@ public class KeyCaptureRenderer : UIRenderer
         var listening = _listening || _alwaysListen;
         var label = listening && !_hasCaptured ? _listeningText : _display;
 
-        if (ImGui.Button($"{label}###keycapture-{Data.Id}", new Vector2(-float.Epsilon, 0f)) && !_alwaysListen)
+        // A slot width from the layout wins; otherwise content width lines the button up with the
+        // inputs around it, and the default stretches it across the row.
+        var slotWidth = RenderContext.SlotWidth;
+        var size = slotWidth > 0f
+            ? new Vector2(slotWidth, 0f)
+            : _contentWidth
+                ? new Vector2(ImGui.CalcItemWidth(), 0f)
+                : new Vector2(-float.Epsilon, 0f);
+
+        if (ImGui.Button($"{label}###keycapture-{Data.Id}", size) && !_alwaysListen)
             _listening = !_listening;   // click toggles listening
+
+        if (string.IsNullOrEmpty(_label)) return;
+
+        ImGui.SameLine();
+        ImGui.Text(_label);
     }
 
     private void Capture()
@@ -118,6 +138,8 @@ public class KeyCaptureRenderer : UIRenderer
             DisplayText       = _display,
             ListeningText     = _listeningText,
             AlwaysListen      = _alwaysListen,
+            UseContentWidth   = _contentWidth,
+            Label             = _label,
             ResetVersion      = _appliedReset,
             CapturedKey       = (int)_capturedKey,
             CapturedModifiers = (int)_capturedMods,

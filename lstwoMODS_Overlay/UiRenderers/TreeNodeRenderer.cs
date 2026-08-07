@@ -66,16 +66,17 @@ public class TreeNodeRenderer : UIRenderer
 
         var open = ImGui.TreeNodeEx(_label, _flags);
 
-        // Drag & drop applies to the node line just rendered  must run before anything
-        // else (like the X button) changes ImGui's "last item".
-        if (_dragPayloadType != null && ImGui.BeginDragDropSource())
+        // Drag & drop applies to the node line just rendered: must run before anything
+        // else (like the X button) changes ImGui's "last item". SourceNoHoldToOpenOthers kills
+        // hold-to-open while dragging, see CollapsingHeaderRenderer for the rationale.
+        if (_dragPayloadType != null && ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceNoHoldToOpenOthers))
         {
             var bytes = Encoding.UTF8.GetBytes(_dragPayloadData ?? "");
             fixed (byte* ptr = bytes)
                 ImGui.SetDragDropPayload(_dragPayloadType, ptr, (uint)bytes.Length);
 
             var dragText = _dragDisplayLabel ?? _label;
-            var idSuffix = dragText.IndexOf("##", System.StringComparison.Ordinal);
+            var idSuffix = dragText.IndexOf("##", StringComparison.Ordinal);
             if (idSuffix >= 0) dragText = dragText.Substring(0, idSuffix);
             ImGui.Text(dragText);
             ImGui.EndDragDropSource();
@@ -83,10 +84,11 @@ public class TreeNodeRenderer : UIRenderer
 
         if (_acceptDropTypes is { Length: > 0 } && ImGui.BeginDragDropTarget())
         {
-            // Insert-between semantics  see CollapsingHeaderRenderer for the rationale.
+            // Insert-between semantics, see CollapsingHeaderRenderer for the rationale.
             var rectMin = ImGui.GetItemRectMin();
             var rectMax = ImGui.GetItemRectMax();
             var below   = ImGui.GetMousePos().Y >= (rectMin.Y + rectMax.Y) * 0.5f;
+            var gap     = ImGui.GetStyle().ItemSpacing.Y * 0.5f;
 
             foreach (var type in _acceptDropTypes)
             {
@@ -95,7 +97,7 @@ public class TreeNodeRenderer : UIRenderer
                 if (payload.IsNull) continue;
                 if (payload.Data == null || payload.DataSize <= 0) continue;
 
-                var y = below ? rectMax.Y : rectMin.Y;
+                var y = below ? rectMax.Y + gap : rectMin.Y - gap;
                 ImGui.GetWindowDrawList().AddLine(
                     new Vector2(rectMin.X, y), new Vector2(rectMax.X, y),
                     ImGui.GetColorU32(ImGuiCol.DragDropTarget), 3f);

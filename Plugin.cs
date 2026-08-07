@@ -40,8 +40,16 @@ public class Plugin : BaseUnityPlugin
     
     // CONFIG
     public static ConfigEntry<float> FontScaleEntry;
-    public static ConfigEntry<bool> F2MenuBarOnlyEntry;
+    public static ConfigEntry<F2Mode> F2ModeEntry;
     public static ConfigEntry<bool> DeveloperModeEntry;
+
+    // COMPATIBILITY (read at overlay creation  changes require a restart to take effect)
+    public static ConfigEntry<bool> MainViewportSeparateWindowEntry;
+    public static ConfigEntry<bool> DisableMultiViewportEntry;
+
+    // WINDOW BACKGROUND (applies live)
+    public static ConfigEntry<ImGuiConfig.WindowBackgroundMode> WindowBackgroundModeEntry;
+    public static ConfigEntry<string> WindowBackgroundColorEntry;
 
     private static Thread _renderThread;
 
@@ -52,9 +60,38 @@ public class Plugin : BaseUnityPlugin
     {
         Instance = this;
 
+        // Everything that dispatches to the main thread (Ref<T>.Changed, element callbacks)
+        // needs to know which thread that is, so claim it before any of it can run.
+        MainThread.Claim();
+
+        // Keep the Unity player ticking while the game window is unfocused. When the overlay
+        // takes keyboard focus the game is technically unfocused, and with the default
+        // runInBackground=false Unity stops calling Update() entirely  which freezes the
+        // MainThread queue that overlay hotkeys (F2) and UI callbacks are drained on, so they
+        // only fire once you alt-tab back. This does not override a game's own timeScale-based
+        // pause (Update runs regardless of timeScale); it only prevents the built-in
+        // unfocused-freeze that breaks the overlay input path.
+        Application.runInBackground = true;
+
         FontScaleEntry = Config.Bind("UI", "Font Scale", 1f, "Global ImGui font scale.");
-        F2MenuBarOnlyEntry = Config.Bind("UI", "F2 Toggles Menubar Only", false, "When enabled, F2 only toggles the menu bar. Panels remain visible so you can move them to a second monitor.");
-        
+        F2ModeEntry = Config.Bind("UI", "F2 Mode", F2Mode.ToggleMenuBarAndPanels,
+            "What the F2 hotkey toggles. ToggleMenuBarAndPanels: menu bar + panels together. " +
+            "ToggleMenuBarOnly: only the menu bar (panels stay visible, e.g. on a second monitor). " +
+            "ToggleNothing: F2 is disabled and everything stays visible.");
+
+        MainViewportSeparateWindowEntry = Config.Bind("Compatibility", "Main Viewport As Separate Window", false,
+            "Render the UI in its own standalone window instead of as a transparent overlay on top of the game. " +
+            "Useful when the transparent overlay doesn't work (e.g. exclusive fullscreen). Requires a restart.");
+        DisableMultiViewportEntry = Config.Bind("Compatibility", "Disable ImGui Multi-Viewport", false,
+            "Disable ImGui multi-viewport so panels can't be dragged out into separate OS windows. " +
+            "Improves compatibility with some setups. Requires a restart.");
+
+        WindowBackgroundModeEntry = Config.Bind("UI", "Window Background", ImGuiConfig.WindowBackgroundMode.MatchImGui,
+            "Background for the UI window. MatchImGui: match the ImGui theme's background color. " +
+            "Custom: use 'Window Background Color'. Only visible in 'Main Viewport As Separate Window' mode.");
+        WindowBackgroundColorEntry = Config.Bind("UI", "Window Background Color", "#738C99",
+            "Custom window background color (hex) used when Window Background = Custom.");
+
         DeveloperModeEntry = Config.Bind("Developer", "Developer Mode", false, "Enable developer tools and debug windows.");
         
         if (DeveloperModeEntry.Value)
@@ -76,7 +113,7 @@ public class Plugin : BaseUnityPlugin
                 
                 LstwoModsPanels.StyleEditorWindow.ApplyCurrentPreset();
                 
-                if (F2MenuBarOnlyEntry.Value)
+                if (F2ModeEntry.Value != F2Mode.ToggleMenuBarAndPanels)
                 {
                     Window.LstwoModsPanels.Enabled = true;
                 }
@@ -134,41 +171,41 @@ public class Plugin : BaseUnityPlugin
 
     private void Update()
     {
-        while (MainThread.Queue.TryDequeue(out var action))
-        {
-            action();
-        }
+        MainThread.Drain();
 
         foreach (var hotkeyManager in UIManager.Windows.Values.Select(x => x.HotkeyManager))
         {
             hotkeyManager.Update();
         }
         
-        while (MainThread.Queue.TryDequeue(out var action))
-        {
-            action();
-        }
+        MainThread.Drain();
 
+        // Isolate each mod's Update: an exception in one must not skip every mod after it in the
+        // list (that silently freezes their per-frame logic  e.g. status indicators  while their
+        // event/coroutine-driven features keep working, which is near-impossible to diagnose).
         foreach(var mod in Mods)
         {
-            mod.Update();
+            try { mod.Update(); }
+            catch (Exception e) { LogSource.LogError($"Error updating mod '{mod.GetType().FullName}': {e}"); }
         }
 
         // Detached (per-context) instances get the same per-frame tick as UI instances.
         foreach (var mod in Hacks.ModRegistry.DetachedInstances)
         {
-            mod.Update();
+            try { mod.Update(); }
+            catch (Exception e) { LogSource.LogError($"Error updating detached mod '{mod.GetType().FullName}': {e}"); }
         }
         
-        while (MainThread.Queue.TryDequeue(out var action))
-        {
-            action();
-        }
+        MainThread.Drain();
     }
 
     internal void ToggleUI()
     {
         if (Window?.LstwoModsPanels == null) return;
+
+        // In "toggle nothing" mode F2 is inert  the UI stays as-is.
+        if (F2ModeEntry.Value == F2Mode.ToggleNothing) return;
+
         var panels = Window.LstwoModsPanels;
 
         if (UIConditions.Any(condition => !condition.Invoke()))
@@ -183,8 +220,17 @@ public class Plugin : BaseUnityPlugin
             Window.FocusGameWindow();
     }
 
+    // Saves are write-behind (see DataStorage), so anything changed in the last few seconds is
+    // still only in memory at this point. Both hooks are needed: OnApplicationQuit runs on a
+    // clean quit, OnDestroy also covers the plugin being torn down without one.
+    private void OnApplicationQuit()
+    {
+        DataStorage.FlushAll();
+    }
+
     private void OnDestroy()
     {
+        DataStorage.FlushAll();
         UIManager.Dispose();
     }
 

@@ -22,6 +22,15 @@ namespace lstwoMODS.ImGui.Shared
 
     public class ImGuiConfig
     {
+        /// <summary>How the main viewport's window background (clear color) is chosen.</summary>
+        public enum WindowBackgroundMode
+        {
+            /// <summary>Use <see cref="WindowBackgroundColor"/>.</summary>
+            Custom = 0,
+            /// <summary>Match the ImGui theme's window background color.</summary>
+            MatchImGui = 1,
+        }
+
         // ── Config flags ─────────────────────────────────────────────────────
         public ImGuiConfigFlags ConfigFlags { get; set; } =
             ImGuiConfigFlags.NavEnableKeyboard |
@@ -78,6 +87,16 @@ namespace lstwoMODS.ImGui.Shared
         public bool ConfigViewportsNoDefaultParent          { get; set; } = false;
         public bool ConfigViewportsNoTaskBarIcon            { get; set; } = false;
         public bool ConfigViewportPlatformFocusSetsImGuiFocus { get; set; } = true;
+
+        // ── Window background (main viewport clear color) ────────────────────
+        /// <summary>
+        /// How the standalone window's background is filled. Only visible when the window is a
+        /// separate window rather than a transparent game overlay (a transparent overlay always
+        /// clears to fully transparent regardless of this setting).
+        /// </summary>
+        public WindowBackgroundMode BackgroundMode { get; set; } = WindowBackgroundMode.MatchImGui;
+        /// <summary>RGBA clear color used when <see cref="BackgroundMode"/> is Custom.</summary>
+        public float[] WindowBackgroundColor { get; set; } = { 0.45f, 0.55f, 0.60f, 1.0f };
 
         // ── Fonts / DPI ──────────────────────────────────────────────────────
         public float FontGlobalScale       { get; set; } = 1.0f;

@@ -176,6 +176,27 @@ public class MacrosWindow : BaseWindow
         /// <summary>Mode id per <see cref="ModeCombo"/> entry; "" for the EmptyLabel entry.</summary>
         public string[] ModeIds;
         public readonly Dictionary<string, TypedEditorUI> TypedEditors = new();
+
+        /// <summary>ParamList widget: a variable-length list of text rows editing one
+        /// comma-separated config string (the Called-by-Macro trigger's parameters).</summary>
+        public ParamListUI ParamList;
+    }
+
+    /// <summary>Per-field state for a <see cref="MacroTriggerWidget.ParamList"/> field: the row host
+    /// plus the live rows. Rows are self-managed (add/remove), so the generic field refresh skips it.</summary>
+    private sealed class ParamListUI
+    {
+        public string MacroId;
+        public string Key;
+        public Container Host;
+        public readonly List<ParamRow> Rows = new();
+        public int NextRowId; // never reused, so a removed-then-added row's ids never collide
+    }
+
+    private sealed class ParamRow
+    {
+        public BaseUIElement Row;
+        public InputText Input;
     }
 
     private sealed class StepUI
@@ -231,6 +252,7 @@ public class MacrosWindow : BaseWindow
         public DragFloat FloatBox;
         public DragFloat2 Vec2Box;
         public DragFloat3 Vec3Box;
+        public DragFloat4 Vec4Box;
         public ColorEdit4 ColorBox;
         public Combo StepCombo;          // Step output
         public Container StepWrap;
@@ -957,19 +979,27 @@ public class MacrosWindow : BaseWindow
                 onValueChanged: v => OnParamConstantEdited(macroId, stepId, pk, v)).WithItemWidth(-1f);
             return paramUI.FloatBox;
         }
-        if (t == typeof(Vector2))
+        // Both flavours of each type share an editor: the constant is persisted through its
+        // display string either way, so Vector2 and Vec2 parameters look and load the same.
+        if (t == typeof(Vector2) || t == typeof(Vec2))
         {
             paramUI.Vec2Box = new DragFloat2(id, speed: 0.05f,
                 onValueChanged: v => OnParamConstantEdited(macroId, stepId, pk, v)).WithItemWidth(-1f);
             return paramUI.Vec2Box;
         }
-        if (t == typeof(Vector3))
+        if (t == typeof(Vector3) || t == typeof(Vec3))
         {
             paramUI.Vec3Box = new DragFloat3(id, speed: 0.05f,
                 onValueChanged: v => OnParamConstantEdited(macroId, stepId, pk, v)).WithItemWidth(-1f);
             return paramUI.Vec3Box;
         }
-        if (t == typeof(Color))
+        if (t == typeof(Vector4) || t == typeof(Vec4))
+        {
+            paramUI.Vec4Box = new DragFloat4(id, speed: 0.05f,
+                onValueChanged: v => OnParamConstantEdited(macroId, stepId, pk, v)).WithItemWidth(-1f);
+            return paramUI.Vec4Box;
+        }
+        if (t == typeof(Color) || t == typeof(Col))
         {
             paramUI.ColorBox = new ColorEdit4(id,
                 onChanged: v => OnParamConstantEdited(macroId, stepId, pk, v)).WithItemWidth(-1f);
@@ -1160,22 +1190,27 @@ public class MacrosWindow : BaseWindow
         else if (paramUI.FloatBox != null)
         {
             var v = SafeCoerce<float>(display);
-            if (paramUI.FloatBox.Value != v) paramUI.FloatBox.Value = v;
+            if (!Near(paramUI.FloatBox.Value, v)) paramUI.FloatBox.Value = v;
         }
         else if (paramUI.Vec2Box != null)
         {
-            var v = SafeCoerce<Vector2>(display);
-            if (paramUI.Vec2Box.Value != v) paramUI.Vec2Box.Value = v;
+            var v = SafeCoerce<Vec2>(display);
+            if (!Near(paramUI.Vec2Box.Value, v)) paramUI.Vec2Box.Value = v;
         }
         else if (paramUI.Vec3Box != null)
         {
-            var v = SafeCoerce<Vector3>(display);
-            if (paramUI.Vec3Box.Value != v) paramUI.Vec3Box.Value = v;
+            var v = SafeCoerce<Vec3>(display);
+            if (!Near(paramUI.Vec3Box.Value, v)) paramUI.Vec3Box.Value = v;
+        }
+        else if (paramUI.Vec4Box != null)
+        {
+            var v = SafeCoerce<Vec4>(display);
+            if (!Near(paramUI.Vec4Box.Value, v)) paramUI.Vec4Box.Value = v;
         }
         else if (paramUI.ColorBox != null)
         {
-            var v = SafeCoerce<Color>(display);
-            if (paramUI.ColorBox.Value != v) paramUI.ColorBox.Value = v;
+            var v = SafeCoerce<Col>(display);
+            if (!Near(paramUI.ColorBox.Value, v)) paramUI.ColorBox.Value = v;
         }
         else if (paramUI.Input != null)
         {
@@ -1189,6 +1224,23 @@ public class MacrosWindow : BaseWindow
         try { return (T)MacroValues.Coerce(display, typeof(T)); }
         catch { return default; }
     }
+
+    /// <summary>
+    /// Nearly equal, used to decide whether an editor already shows the constant.
+    ///
+    /// The constant is stored as its display string, and <c>float.ToString()</c> on this
+    /// runtime is 7 significant digits, not round-trip exact: 1.2345678 comes back as
+    /// 1.234568. An exact test would therefore re-send the value on every refresh, which
+    /// costs an IPC message per frame and yanks the widget back while the user is dragging
+    /// it. The tolerance is relative, so it holds for large magnitudes too.
+    /// </summary>
+    private static bool Near(float a, float b)
+        => a.Equals(b) || Math.Abs(a - b) <= 1e-6f * Math.Max(1f, Math.Max(Math.Abs(a), Math.Abs(b)));
+
+    private static bool Near(Vec2 a, Vec2 b) => Near(a.X, b.X) && Near(a.Y, b.Y);
+    private static bool Near(Vec3 a, Vec3 b) => Near(a.X, b.X) && Near(a.Y, b.Y) && Near(a.Z, b.Z);
+    private static bool Near(Vec4 a, Vec4 b) => Near(a.X, b.X) && Near(a.Y, b.Y) && Near(a.Z, b.Z) && Near(a.W, b.W);
+    private static bool Near(Col a, Col b) => Near(a.R, b.R) && Near(a.G, b.G) && Near(a.B, b.B) && Near(a.A, b.A);
 
     private static string ModeOf(ValueSource source) => source switch
     {
@@ -1755,6 +1807,9 @@ public class MacrosWindow : BaseWindow
     /// just-removed id in the same frame (which the overlay would drop).</summary>
     private TriggerFieldUI BuildTriggerField(string macroId, string descriptorId, MacroTriggerParam param)
     {
+        if (param.Widget == MacroTriggerWidget.ParamList)
+            return BuildParamListField(macroId, descriptorId, param);
+
         var slug = $"{macroId}-{Slugify(descriptorId)}-{param.Key}";
         var field = new TriggerFieldUI { MacroId = macroId, Slug = slug, Param = param };
         var wid = $"##Mc-tcfg-{slug}";
@@ -1848,6 +1903,89 @@ public class MacrosWindow : BaseWindow
         return field;
     }
 
+    // ── ParamList widget (Called-by-Macro parameters) ──────────────────────
+    // One input row per entry plus an "Add parameter" button, all editing a single comma-separated
+    // config string, so the trigger's DynamicOutputs parser is unchanged and old macros still load.
+
+    private TriggerFieldUI BuildParamListField(string macroId, string descriptorId, MacroTriggerParam param)
+    {
+        var slug = $"{macroId}-{Slugify(descriptorId)}-{param.Key}";
+        var field = new TriggerFieldUI { MacroId = macroId, Slug = slug, Param = param };
+        var ui = new ParamListUI { MacroId = macroId, Key = param.Key };
+        field.ParamList = ui;
+
+        var stored = FindMacro(macroId)?.Trigger.GetString(param.Key) ?? MacroValues.ToDisplay(param.Default);
+        foreach (var spec in SplitParams(stored))
+            ui.Rows.Add(BuildParamRow(field, ui, spec));
+        ui.Host = new Container($"Mc-tplist-{slug}", ui.Rows.Select(r => r.Row).ToArray());
+
+        var addButton = new Button($"{Lucide.Plus} Add parameter##Mc-tplist-add-{slug}", () => AddParamRow(field, ui))
+            .WithTooltip("Add a parameter this macro accepts from its caller.");
+
+        var label = new UIText($"Mc-tcfg-lbl-{slug}", param.Label);
+        if (!string.IsNullOrEmpty(param.Tooltip)) label.WithTooltip(param.Tooltip);
+
+        field.Row = new Container($"Mc-tcfg-row-{slug}", label, ui.Host, addButton);
+        return field;
+    }
+
+    private ParamRow BuildParamRow(TriggerFieldUI field, ParamListUI ui, string spec)
+    {
+        var idb = $"{field.Slug}-p{ui.NextRowId++}"; // unique + never reused so same-frame re-add never collides
+        var row = new ParamRow();
+
+        row.Input = new InputText($"##Mc-tplist-in-{idb}", value: spec ?? "", hint: "name  (or name:type)",
+                maxLength: 64, onChanged: _ => CommitParamList(ui))
+            .WithItemWidth(180f)
+            .WithTooltip("Parameter name (e.g. count). Optionally add a type after a colon: count:int, target:Player, loud:bool.");
+
+        row.Row = new Container($"Mc-tplist-row-{idb}",
+            row.Input,
+            new SameLine($"Mc-tplist-sl-{idb}"),
+            new SmallButton($"{Lucide.X}##Mc-tplist-del-{idb}", () => RemoveParamRow(ui, row))
+                .WithTooltip("Remove this parameter"));
+        return row;
+    }
+
+    private void AddParamRow(TriggerFieldUI field, ParamListUI ui)
+    {
+        var row = BuildParamRow(field, ui, "");
+        ui.Rows.Add(row);
+        Win.AddElement(row.Row, ui.Host);
+        CommitParamList(ui);
+    }
+
+    private void RemoveParamRow(ParamListUI ui, ParamRow row)
+    {
+        if (!ui.Rows.Remove(row)) return;
+        Win.RemoveElement(row.Row);
+        CommitParamList(ui);
+    }
+
+    /// <summary>Re-serialize the rows into the trigger's comma-separated config string (blank rows
+    /// dropped) and persist, which re-resolves the trigger's outputs.</summary>
+    private void CommitParamList(ParamListUI ui)
+    {
+        var joined = string.Join(", ", ui.Rows
+            .Select(r => (r.Input.Value ?? "").Trim())
+            .Where(s => s.Length > 0));
+        OnTriggerConfigEdited(ui.MacroId, ui.Key, joined);
+    }
+
+    /// <summary>Split a stored comma-separated parameter spec into per-row entries (verbatim, so the
+    /// optional ":type" survives). Blank entries dropped.</summary>
+    private static List<string> SplitParams(string stored)
+    {
+        var list = new List<string>();
+        if (string.IsNullOrWhiteSpace(stored)) return list;
+        foreach (var part in stored.Split(','))
+        {
+            var trimmed = part.Trim();
+            if (trimmed.Length > 0) list.Add(trimmed);
+        }
+        return list;
+    }
+
     /// <summary>Identifier-safe form of a trigger id ("core.hotkey" → "core_hotkey") for use in
     /// element ids.</summary>
     private static string Slugify(string id)
@@ -1862,6 +2000,8 @@ public class MacrosWindow : BaseWindow
     /// <summary>Sync one config field's widget from the stored value.</summary>
     private static void RefreshTriggerField(TriggerFieldUI field, MacroTrigger trigger)
     {
+        if (field.ParamList != null) return; // rows are self-managed (add/remove), nothing to sync
+
         var display = trigger.GetString(field.Param.Key) ?? MacroValues.ToDisplay(field.Param.Default);
 
         if (field.BindButton != null)
@@ -2151,20 +2291,27 @@ public class MacrosWindow : BaseWindow
                 {
                     if (t == typeof(bool))
                         return (bool)MacroValues.Coerce(display, t) ? "true" : "false";
-                    if (t == typeof(Vector2))
+                    // Coerced to the serializable flavour whichever one the param declares:
+                    // the seed is only ever read back as text.
+                    if (t == typeof(Vector2) || t == typeof(Vec2))
                     {
-                        var v = (Vector2)MacroValues.Coerce(display, t);
-                        return FormattableString.Invariant($"vec2({v.x}, {v.y})");
+                        var v = (Vec2)MacroValues.Coerce(display, typeof(Vec2));
+                        return FormattableString.Invariant($"vec2({v.X}, {v.Y})");
                     }
-                    if (t == typeof(Vector3))
+                    if (t == typeof(Vector3) || t == typeof(Vec3))
                     {
-                        var v = (Vector3)MacroValues.Coerce(display, t);
-                        return FormattableString.Invariant($"vec({v.x}, {v.y}, {v.z})");
+                        var v = (Vec3)MacroValues.Coerce(display, typeof(Vec3));
+                        return FormattableString.Invariant($"vec({v.X}, {v.Y}, {v.Z})");
                     }
-                    if (t == typeof(Color))
+                    if (t == typeof(Vector4) || t == typeof(Vec4))
                     {
-                        var v = (Color)MacroValues.Coerce(display, t);
-                        return FormattableString.Invariant($"rgba({v.r}, {v.g}, {v.b}, {v.a})");
+                        var v = (Vec4)MacroValues.Coerce(display, typeof(Vec4));
+                        return FormattableString.Invariant($"vec4({v.X}, {v.Y}, {v.Z}, {v.W})");
+                    }
+                    if (t == typeof(Color) || t == typeof(Col))
+                    {
+                        var v = (Col)MacroValues.Coerce(display, typeof(Col));
+                        return FormattableString.Invariant($"rgba({v.R}, {v.G}, {v.B}, {v.A})");
                     }
                 }
                 catch

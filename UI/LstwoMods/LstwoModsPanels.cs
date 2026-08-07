@@ -125,8 +125,14 @@ public class LstwoModsPanels : UIComponent
 
                 menuItem.OnClick(() =>
                 {
-                    ((WindowData)window.Data).Open = menuItem.Selected;
+                    var open = menuItem.Selected;
+                    ((WindowData)window.Data).Open = open;
                     window.MarkChanged();
+
+                    // Persist directly: closing via the menu updates both Open and Data.Open on
+                    // the overlay in the same ApplyState, so GetNewState() sees no diff and
+                    // window.OnOpen never fires  it can't be relied on to save the closed state.
+                    DataStorage.SaveToBag(WindowStateStorageId, key, open);
                 });
 
                 _windowMenuItems.Add((tab, menuItem));
@@ -155,11 +161,15 @@ public class LstwoModsPanels : UIComponent
 
     public void Refresh()
     {
-        var menuBarOnlyMode = Plugin.F2MenuBarOnlyEntry?.Value ?? false;
-        var windowsVisible = menuBarOnlyMode || Enabled;
+        var mode = Plugin.F2ModeEntry?.Value ?? F2Mode.ToggleMenuBarAndPanels;
+
+        // Panels stay visible unless F2 toggles them together with the menu bar.
+        var windowsVisible = mode != F2Mode.ToggleMenuBarAndPanels || Enabled;
+        // The menu bar follows the toggle, except in "toggle nothing" mode where it's always shown.
+        var menuBarVisible = mode == F2Mode.ToggleNothing || Enabled;
 
         windowsModeUI.SetVisible(windowsVisible);
-        mainMenuBarUI.SetVisible(Enabled);
+        mainMenuBarUI.SetVisible(menuBarVisible);
         MarkChanged();
     }
 

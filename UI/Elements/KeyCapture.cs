@@ -34,6 +34,23 @@ public class KeyCapture : BaseUIElement<KeyCapture>
     public KeyCapture WithListeningText(string text)
     { ((KeyCaptureData)Data).ListeningText = text; return this; }
 
+    /// <summary>Match the button width to <c>ImGui.CalcItemWidth()</c> instead of stretching it
+    /// across the row, so it aligns with the input widgets around it.</summary>
+    public KeyCapture WithContentWidth(bool value = true)
+    { ((KeyCaptureData)Data).UseContentWidth = value; return this; }
+
+    /// <summary>Text drawn to the right of the button, where ImGui puts every other input's label.</summary>
+    public KeyCapture WithLabel(string label)
+    { ((KeyCaptureData)Data).Label = label; return this; }
+
+    /// <summary>
+    /// Lay the binding out like a normal setting row: a content-width button on the left with
+    /// <paramref name="label"/> to its right. Without this the button stretches the full row and
+    /// any label has to be placed before it, which reads backwards next to every other input.
+    /// </summary>
+    public KeyCapture WithInlineLabel(string label)
+        => WithContentWidth().WithLabel(label);
+
     /// <summary>Idle label shown when not listening (e.g. the current binding).</summary>
     public KeyCapture WithDisplay(string idleText)
     { ((KeyCaptureData)Data).DisplayText = idleText; return this; }
@@ -65,13 +82,17 @@ public class KeyCapture : BaseUIElement<KeyCapture>
         var always     = old.AlwaysListen;
         var listening  = old.ListeningText;
         var reset      = old.ResetVersion;
+        var contentW   = old.UseContentWidth;
+        var label      = old.Label;
 
         base.ApplyReceivedData(data);
 
         var d = (KeyCaptureData)Data;
-        d.AlwaysListen  = always;
-        d.ListeningText = listening;
-        d.ResetVersion  = reset;
+        d.AlwaysListen    = always;
+        d.ListeningText   = listening;
+        d.ResetVersion    = reset;
+        d.UseContentWidth = contentW;
+        d.Label           = label;
 
         if (d.CaptureVersion == _lastVersion || d.CapturedKey == 0) return;
         _lastVersion = d.CaptureVersion;

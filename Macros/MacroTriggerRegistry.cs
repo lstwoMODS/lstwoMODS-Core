@@ -14,6 +14,11 @@ public enum MacroTriggerWidget
     /// <summary>Press-the-keys capture. The field must be a <see cref="string"/>; its stored
     /// value is a binding in "Ctrl+Shift+F" form (see <see cref="Hotkeys.HotkeyBinding"/>).</summary>
     Keybind,
+
+    /// <summary>An editable list of short text entries with add/remove buttons, stored as one
+    /// comma-separated <see cref="string"/> in config. Used for the Called-by-Macro trigger's
+    /// parameter list (one input per parameter instead of a single comma-separated box).</summary>
+    ParamList,
 }
 
 /// <summary>

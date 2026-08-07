@@ -35,7 +35,11 @@ namespace lstwoMODS_Core.UI.TabMenus
         private Ref<bool> GetVisibilityRef(BaseMod mod)
         {
             if (!_modVisibility.TryGetValue(mod, out var r))
-                _modVisibility[mod] = r = new Ref<bool>(true);
+                // The search box is deliberately an IPC-thread callback so filtering still works
+                // while the game is frozen or loading; these refs are what it drives, so they
+                // have to fire there too rather than waiting for a main-thread tick that is not
+                // coming. Nothing downstream of them touches a Unity API.
+                _modVisibility[mod] = r = new Ref<bool>(true, runCallbacksOnMainThread: false);
             return r;
         }
 

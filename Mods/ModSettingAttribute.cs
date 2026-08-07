@@ -6,8 +6,11 @@ namespace lstwoMODS_Core.Hacks
     /// Mark a field or property to expose it as a UI setting and register it in <see cref="ModRegistry"/>.
     /// The auto-builder maps the value type to an appropriate widget:
     ///   bool → Checkbox | float → DragFloat (optionally clamped) or SliderFloat (if both min+max set)
-    ///   int → DragInt or SliderInt | string → InputText | Color → ColorEdit4
-    ///   Vector2/3/4 → DragFloat2/3/4 | Enum → Combo
+    ///   int → DragInt or SliderInt | string → InputText | Color or Col → ColorEdit4
+    ///   Vector2/3/4 or Vec2/3/4 → DragFloat2/3/4 | Enum → Combo
+    ///
+    /// Prefer <see cref="Vec2"/>/<see cref="Vec3"/>/<see cref="Vec4"/>/<see cref="Col"/> over the
+    /// Unity types for anything persisted: Unity's vectors and colors cannot be serialized.
     /// </summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
     public class ModSettingAttribute : Attribute

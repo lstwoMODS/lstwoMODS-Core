@@ -33,6 +33,22 @@ public static class UIManager
 
     public static Action OnInitialized;
 
+    /// <summary>
+    /// Fires when a freshly started overlay has connected in place of one that died. The window
+    /// trees are replayed by core, but anything a mod pushed across once at startup (asset
+    /// catalogues, item lists, ...) died with the old process and has to be re-sent from here.
+    /// Runs on the IPC connect thread, not the Unity main thread.
+    /// </summary>
+    public static Action OnReconnected;
+
+    /// <summary>
+    /// Inbound overlay messages, forwarded after core has handled its own types. Subscribe here
+    /// rather than to <see cref="IpcChannel"/>.MessageReceived: a restart replaces the channel
+    /// object, and a subscription made against the old one is dropped silently, leaving the mod
+    /// unable to receive anything until the game is restarted. Runs on the IPC reader thread.
+    /// </summary>
+    public static event Action<IpcMessage> MessageReceived;
+
     // ── Overlay supervision ─────────────────────────────────────────────────
     // If the overlay process dies or its IPC channel breaks, it is restarted and every
     // window's live element tree is replayed. Restarts are capped so a persistently
@@ -173,6 +189,9 @@ public static class UIManager
             Plugin.LogSource.LogInfo("[UIManager] Overlay reconnected  restoring windows.");
             foreach (var window in Windows.Values)
                 window.Reinitialize();
+
+            try { OnReconnected?.Invoke(); }
+            catch (Exception ex) { Plugin.LogSource.LogError($"[UIManager] OnReconnected handler threw: {ex}"); }
             return;
         }
 
@@ -216,6 +235,18 @@ public static class UIManager
                     _styleDataCallbacks.Remove(msg.RequestId);
                 }
                 callback?.Invoke(msg);
+            }
+        }
+
+        // Per-handler catch: this runs on the IPC reader loop, and one mod throwing must not
+        // take the channel down with it.
+        var handlers = MessageReceived;
+        if (handlers != null)
+        {
+            foreach (var handler in handlers.GetInvocationList())
+            {
+                try { ((Action<IpcMessage>)handler).Invoke(message); }
+                catch (Exception ex) { Plugin.LogSource.LogError($"[UIManager] Message handler threw: {ex}"); }
             }
         }
 

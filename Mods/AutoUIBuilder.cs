@@ -136,6 +136,23 @@ namespace lstwoMODS_Core.Hacks
             return v;
         }
 
+        // ── Vector and color boxing ──────────────────────────────────────────
+        //
+        // Settings and action parameters are read and written as boxed objects through
+        // reflection, which does not apply the Vec2/Col implicit conversions. So unbox
+        // tolerantly (the member may be declared in either flavour) and re-box as the
+        // flavour the member actually declares, or reflection rejects the write.
+
+        private static Vec2 ToVec2(object v) => v switch { Vec2 a => a, Vector2 b => b, _ => default };
+        private static Vec3 ToVec3(object v) => v switch { Vec3 a => a, Vector3 b => b, _ => default };
+        private static Vec4 ToVec4(object v) => v switch { Vec4 a => a, Vector4 b => b, _ => default };
+        private static Col  ToCol (object v) => v switch { Col  a => a, Color   b => b, _ => default };
+
+        private static object BoxVec2(Vec2 v, Type declared) => declared == typeof(Vec2) ? v : (object)(Vector2)v;
+        private static object BoxVec3(Vec3 v, Type declared) => declared == typeof(Vec3) ? v : (object)(Vector3)v;
+        private static object BoxVec4(Vec4 v, Type declared) => declared == typeof(Vec4) ? v : (object)(Vector4)v;
+        private static object BoxCol (Col  v, Type declared) => declared == typeof(Col)  ? v : (object)(Color)v;
+
 
         public static BaseUIElement BuildSettingElement(ModSettingDescriptor settingDescriptor, string idPrefix)
         {
@@ -260,101 +277,116 @@ namespace lstwoMODS_Core.Hacks
                 settingDescriptor.AddUIPush(v => { w.Value = (string)v; pending = v; });
                 element = w;
             }
-            else if (settingDescriptor.ValueType == typeof(Vector2))
+            // Each vector/color branch below serves both the Unity type and its serializable
+            // counterpart; `vt` is the one this setting actually declares, and the value is
+            // boxed back as that on every commit.
+            else if (settingDescriptor.ValueType == typeof(Vector2) || settingDescriptor.ValueType == typeof(Vec2))
             {
+                var vt = settingDescriptor.ValueType;
                 if (widget == WidgetType.Input)
                 {
-                    var w = new InputFloat2(label, (Vector2)settingDescriptor.GetValue(), format: format ?? "%.3f", onValueChanged: v => commit(v));
-                    settingDescriptor.AddUIPush(v => { w.Value = (Vector2)v; pending = v; });
+                    var w = new InputFloat2(label, ToVec2(settingDescriptor.GetValue()), format: format ?? "%.3f", onValueChanged: v => commit(BoxVec2(v, vt)));
+                    settingDescriptor.AddUIPush(v => { w.Value = ToVec2(v); pending = v; });
                     element = w;
                 }
                 else
                 {
-                    if (!hasApply && settingDescriptor.RefObject is Ref<Vector2> rv)
-                        element = new DragFloat2(label, speed: dragSpeed, onValueChanged: v => commit(v)).WithValue(rv);
+                    if (!hasApply && settingDescriptor.RefObject is Ref<Vec2> rvec)
+                        element = new DragFloat2(label, speed: dragSpeed, onValueChanged: v => commit(BoxVec2(v, vt))).WithValue(rvec);
+                    else if (!hasApply && settingDescriptor.RefObject is Ref<Vector2> rv)
+                        element = new DragFloat2(label, speed: dragSpeed, onValueChanged: v => commit(BoxVec2(v, vt))).WithValue(rv);
                     else
                     {
-                        var w = new DragFloat2(label, (Vector2)settingDescriptor.GetValue(), dragSpeed, onValueChanged: v => commit(v));
-                        settingDescriptor.AddUIPush(v => { w.Value = (Vector2)v; pending = v; });
+                        var w = new DragFloat2(label, ToVec2(settingDescriptor.GetValue()), dragSpeed, onValueChanged: v => commit(BoxVec2(v, vt)));
+                        settingDescriptor.AddUIPush(v => { w.Value = ToVec2(v); pending = v; });
                         element = w;
                     }
                 }
             }
-            else if (settingDescriptor.ValueType == typeof(Vector3))
+            else if (settingDescriptor.ValueType == typeof(Vector3) || settingDescriptor.ValueType == typeof(Vec3))
             {
+                var vt = settingDescriptor.ValueType;
                 if (widget == WidgetType.Color3)
                 {
-                    var vec0 = (Vector3)settingDescriptor.GetValue();
-                    var w = new ColorEdit3(label, new Color(vec0.x, vec0.y, vec0.z), onChanged: v => commit(new Vector3(v.r, v.g, v.b)));
-                    settingDescriptor.AddUIPush(v => { var vec = (Vector3)v; w.Value = new Color(vec.x, vec.y, vec.z); pending = v; });
+                    var w = new ColorEdit3(label, ToVec3(settingDescriptor.GetValue()), onChanged: v => commit(BoxVec3(v, vt)));
+                    settingDescriptor.AddUIPush(v => { w.Value = ToVec3(v); pending = v; });
                     element = w;
                 }
                 else if (widget == WidgetType.Input)
                 {
-                    var w = new InputFloat3(label, (Vector3)settingDescriptor.GetValue(), format: format ?? "%.3f", onValueChanged: v => commit(v));
-                    settingDescriptor.AddUIPush(v => { w.Value = (Vector3)v; pending = v; });
+                    var w = new InputFloat3(label, ToVec3(settingDescriptor.GetValue()), format: format ?? "%.3f", onValueChanged: v => commit(BoxVec3(v, vt)));
+                    settingDescriptor.AddUIPush(v => { w.Value = ToVec3(v); pending = v; });
                     element = w;
                 }
                 else
                 {
-                    if (!hasApply && settingDescriptor.RefObject is Ref<Vector3> rv)
-                        element = new DragFloat3(label, speed: dragSpeed, onValueChanged: v => commit(v)).WithValue(rv);
+                    if (!hasApply && settingDescriptor.RefObject is Ref<Vec3> rvec)
+                        element = new DragFloat3(label, speed: dragSpeed, onValueChanged: v => commit(BoxVec3(v, vt))).WithValue(rvec);
+                    else if (!hasApply && settingDescriptor.RefObject is Ref<Vector3> rv)
+                        element = new DragFloat3(label, speed: dragSpeed, onValueChanged: v => commit(BoxVec3(v, vt))).WithValue(rv);
                     else
                     {
-                        var w = new DragFloat3(label, (Vector3)settingDescriptor.GetValue(), dragSpeed, onValueChanged: v => commit(v));
-                        settingDescriptor.AddUIPush(v => { w.Value = (Vector3)v; pending = v; });
+                        var w = new DragFloat3(label, ToVec3(settingDescriptor.GetValue()), dragSpeed, onValueChanged: v => commit(BoxVec3(v, vt)));
+                        settingDescriptor.AddUIPush(v => { w.Value = ToVec3(v); pending = v; });
                         element = w;
                     }
                 }
             }
-            else if (settingDescriptor.ValueType == typeof(Vector4))
+            else if (settingDescriptor.ValueType == typeof(Vector4) || settingDescriptor.ValueType == typeof(Vec4))
             {
+                var vt = settingDescriptor.ValueType;
                 if (widget == WidgetType.Color4)
                 {
-                    var vec0 = (Vector4)settingDescriptor.GetValue();
-                    var w = new ColorEdit4(label, new Color(vec0.x, vec0.y, vec0.z, vec0.w), onChanged: v => commit(new Vector4(v.r, v.g, v.b, v.a)));
-                    settingDescriptor.AddUIPush(v => { var vec = (Vector4)v; w.Value = new Color(vec.x, vec.y, vec.z, vec.w); pending = v; });
+                    var w = new ColorEdit4(label, ToVec4(settingDescriptor.GetValue()), onChanged: v => commit(BoxVec4(v, vt)));
+                    settingDescriptor.AddUIPush(v => { w.Value = ToVec4(v); pending = v; });
                     element = w;
                 }
                 else if (widget == WidgetType.Input)
                 {
-                    var w = new InputFloat4(label, (Vector4)settingDescriptor.GetValue(), format: format ?? "%.3f", onValueChanged: v => commit(v));
-                    settingDescriptor.AddUIPush(v => { w.Value = (Vector4)v; pending = v; });
+                    var w = new InputFloat4(label, ToVec4(settingDescriptor.GetValue()), format: format ?? "%.3f", onValueChanged: v => commit(BoxVec4(v, vt)));
+                    settingDescriptor.AddUIPush(v => { w.Value = ToVec4(v); pending = v; });
                     element = w;
                 }
                 else
                 {
-                    if (!hasApply && settingDescriptor.RefObject is Ref<Vector4> rv)
-                        element = new DragFloat4(label, speed: dragSpeed, onValueChanged: v => commit(v)).WithValue(rv);
+                    if (!hasApply && settingDescriptor.RefObject is Ref<Vec4> rvec)
+                        element = new DragFloat4(label, speed: dragSpeed, onValueChanged: v => commit(BoxVec4(v, vt))).WithValue(rvec);
+                    else if (!hasApply && settingDescriptor.RefObject is Ref<Vector4> rv)
+                        element = new DragFloat4(label, speed: dragSpeed, onValueChanged: v => commit(BoxVec4(v, vt))).WithValue(rv);
                     else
                     {
-                        var w = new DragFloat4(label, (Vector4)settingDescriptor.GetValue(), dragSpeed, onValueChanged: v => commit(v));
-                        settingDescriptor.AddUIPush(v => { w.Value = (Vector4)v; pending = v; });
+                        var w = new DragFloat4(label, ToVec4(settingDescriptor.GetValue()), dragSpeed, onValueChanged: v => commit(BoxVec4(v, vt)));
+                        settingDescriptor.AddUIPush(v => { w.Value = ToVec4(v); pending = v; });
                         element = w;
                     }
                 }
             }
-            else if (settingDescriptor.ValueType == typeof(Color))
+            else if (settingDescriptor.ValueType == typeof(Color) || settingDescriptor.ValueType == typeof(Col))
             {
+                var vt = settingDescriptor.ValueType;
                 if (widget == WidgetType.Color3)
                 {
-                    if (!hasApply && settingDescriptor.RefObject is Ref<Color> rc)
-                        element = new ColorEdit3(label, (Color)settingDescriptor.GetValue(), onChanged: v => commit(v)).WithValue(rc);
+                    if (!hasApply && settingDescriptor.RefObject is Ref<Col> rcol)
+                        element = new ColorEdit3(label, ToCol(settingDescriptor.GetValue()), onChanged: v => commit(BoxCol(v, vt))).WithValue(rcol);
+                    else if (!hasApply && settingDescriptor.RefObject is Ref<Color> rc)
+                        element = new ColorEdit3(label, ToCol(settingDescriptor.GetValue()), onChanged: v => commit(BoxCol(v, vt))).WithValue(rc);
                     else
                     {
-                        var w = new ColorEdit3(label, (Color)settingDescriptor.GetValue(), onChanged: v => commit(v));
-                        settingDescriptor.AddUIPush(v => { w.Value = (Color)v; pending = v; });
+                        var w = new ColorEdit3(label, ToCol(settingDescriptor.GetValue()), onChanged: v => commit(BoxCol(v, vt)));
+                        settingDescriptor.AddUIPush(v => { w.Value = ToCol(v); pending = v; });
                         element = w;
                     }
                 }
                 else
                 {
-                    if (!hasApply && settingDescriptor.RefObject is Ref<Color> rc)
-                        element = new ColorEdit4(label, (Color)settingDescriptor.GetValue(), onChanged: v => commit(v)).WithValue(rc);
+                    if (!hasApply && settingDescriptor.RefObject is Ref<Col> rcol)
+                        element = new ColorEdit4(label, ToCol(settingDescriptor.GetValue()), onChanged: v => commit(BoxCol(v, vt))).WithValue(rcol);
+                    else if (!hasApply && settingDescriptor.RefObject is Ref<Color> rc)
+                        element = new ColorEdit4(label, ToCol(settingDescriptor.GetValue()), onChanged: v => commit(BoxCol(v, vt))).WithValue(rc);
                     else
                     {
-                        var w = new ColorEdit4(label, (Color)settingDescriptor.GetValue(), onChanged: v => commit(v));
-                        settingDescriptor.AddUIPush(v => { w.Value = (Color)v; pending = v; });
+                        var w = new ColorEdit4(label, ToCol(settingDescriptor.GetValue()), onChanged: v => commit(BoxCol(v, vt)));
+                        settingDescriptor.AddUIPush(v => { w.Value = ToCol(v); pending = v; });
                         element = w;
                     }
                 }
@@ -464,37 +496,43 @@ namespace lstwoMODS_Core.Hacks
             }
             else if (p.ParameterType == typeof(string))
                 el = new InputText(label, (string)(p.CurrentValue ?? ""), onChanged: v => p.CurrentValue = v);
-            else if (p.ParameterType == typeof(Vector2))
+            // As with settings: the widget speaks Vec2/Col, but CurrentValue is invoked
+            // through reflection and so has to be boxed as the declared parameter type.
+            else if (p.ParameterType == typeof(Vector2) || p.ParameterType == typeof(Vec2))
             {
+                var pt = p.ParameterType;
                 if (widget == WidgetType.Input)
-                    el = new InputFloat2(label, (Vector2)p.CurrentValue, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = v);
+                    el = new InputFloat2(label, ToVec2(p.CurrentValue), format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = BoxVec2(v, pt));
                 else
-                    el = new DragFloat2(label, (Vector2)p.CurrentValue, dragSpeed, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = v);
+                    el = new DragFloat2(label, ToVec2(p.CurrentValue), dragSpeed, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = BoxVec2(v, pt));
             }
-            else if (p.ParameterType == typeof(Vector3))
+            else if (p.ParameterType == typeof(Vector3) || p.ParameterType == typeof(Vec3))
             {
+                var pt = p.ParameterType;
                 if (widget == WidgetType.Color3)
-                    el = new ColorEdit3(label, new Color(((Vector3)p.CurrentValue).x, ((Vector3)p.CurrentValue).y, ((Vector3)p.CurrentValue).z), onChanged: v => p.CurrentValue = new Vector3(v.r, v.g, v.b));
+                    el = new ColorEdit3(label, ToVec3(p.CurrentValue), onChanged: v => p.CurrentValue = BoxVec3(v, pt));
                 else if (widget == WidgetType.Input)
-                    el = new InputFloat3(label, (Vector3)p.CurrentValue, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = v);
+                    el = new InputFloat3(label, ToVec3(p.CurrentValue), format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = BoxVec3(v, pt));
                 else
-                    el = new DragFloat3(label, (Vector3)p.CurrentValue, dragSpeed, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = v);
+                    el = new DragFloat3(label, ToVec3(p.CurrentValue), dragSpeed, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = BoxVec3(v, pt));
             }
-            else if (p.ParameterType == typeof(Vector4))
+            else if (p.ParameterType == typeof(Vector4) || p.ParameterType == typeof(Vec4))
             {
+                var pt = p.ParameterType;
                 if (widget == WidgetType.Color4)
-                    el = new ColorEdit4(label, new Color(((Vector4)p.CurrentValue).x, ((Vector4)p.CurrentValue).y, ((Vector4)p.CurrentValue).z, ((Vector4)p.CurrentValue).w), onChanged: v => p.CurrentValue = new Vector4(v.r, v.g, v.b, v.a));
+                    el = new ColorEdit4(label, ToVec4(p.CurrentValue), onChanged: v => p.CurrentValue = BoxVec4(v, pt));
                 else if (widget == WidgetType.Input)
-                    el = new InputFloat4(label, (Vector4)p.CurrentValue, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = v);
+                    el = new InputFloat4(label, ToVec4(p.CurrentValue), format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = BoxVec4(v, pt));
                 else
-                    el = new DragFloat4(label, (Vector4)p.CurrentValue, dragSpeed, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = v);
+                    el = new DragFloat4(label, ToVec4(p.CurrentValue), dragSpeed, format: fmt ?? "%.3f", onValueChanged: v => p.CurrentValue = BoxVec4(v, pt));
             }
-            else if (p.ParameterType == typeof(Color))
+            else if (p.ParameterType == typeof(Color) || p.ParameterType == typeof(Col))
             {
+                var pt = p.ParameterType;
                 if (widget == WidgetType.Color3)
-                    el = new ColorEdit3(label, (Color)p.CurrentValue, onChanged: v => p.CurrentValue = v);
+                    el = new ColorEdit3(label, ToCol(p.CurrentValue), onChanged: v => p.CurrentValue = BoxCol(v, pt));
                 else
-                    el = new ColorEdit4(label, (Color)p.CurrentValue, onChanged: v => p.CurrentValue = v);
+                    el = new ColorEdit4(label, ToCol(p.CurrentValue), onChanged: v => p.CurrentValue = BoxCol(v, pt));
             }
             else if (p.ParameterType.IsEnum)
             {
