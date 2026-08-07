@@ -5,6 +5,10 @@ VisualStudioVersion = 17.7.34024.191
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lstwoMODS_Core", "lstwoMODS_Core.csproj", "{77739F7D-3E45-459B-8BE3-21F8AD972DB5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lstwoMODS_Overlay", "lstwoMODS_Overlay\lstwoMODS_Overlay.csproj", "{4FB6A2FA-BE32-496B-AA97-3DCE70192469}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lstwoMODS.ImGui.Shared", "lstwoMODS.ImGui.Shared\lstwoMODS.ImGui.Shared.csproj", "{3E06F7BB-090B-472F-8591-2EBB026BBB69}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{77739F7D-3E45-459B-8BE3-21F8AD972DB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77739F7D-3E45-459B-8BE3-21F8AD972DB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{77739F7D-3E45-459B-8BE3-21F8AD972DB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FB6A2FA-BE32-496B-AA97-3DCE70192469}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FB6A2FA-BE32-496B-AA97-3DCE70192469}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FB6A2FA-BE32-496B-AA97-3DCE70192469}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FB6A2FA-BE32-496B-AA97-3DCE70192469}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E06F7BB-090B-472F-8591-2EBB026BBB69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E06F7BB-090B-472F-8591-2EBB026BBB69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E06F7BB-090B-472F-8591-2EBB026BBB69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E06F7BB-090B-472F-8591-2EBB026BBB69}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

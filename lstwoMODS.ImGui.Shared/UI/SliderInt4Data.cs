@@ -1,0 +1,14 @@
+namespace lstwoMODS.ImGui.Shared.UI
+{
+    public class SliderInt4Data : BaseUIElementData
+    {
+        public int X { get; set; } = 0;
+        public int Y { get; set; } = 0;
+        public int Z { get; set; } = 0;
+        public int W { get; set; } = 0;
+        public int Min { get; set; } = 0;
+        public int Max { get; set; } = 100;
+        public string Format { get; set; } = "%d";
+        public ImGuiSliderFlags Flags { get; set; } = ImGuiSliderFlags.None;
+    }
+}
