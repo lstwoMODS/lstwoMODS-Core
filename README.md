@@ -13,7 +13,7 @@ Mostly used for my Wobbly Life mods but can technically be used for anything.
 ## How To Use
 
 The menu can be opened in game using F2.
-For configuration or dev documentation check the website.
+For configuration or dev documentation check [the website](https://lstwomods.com/docs/lstwomods-core).
 
 ## Installation Requirements
 
@@ -21,8 +21,7 @@ Requires [BepInEx 5.X](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.2
 
 ## Recommended Installation
 
-It usually comes bundled with a modpack on places like thunderstore,
-or you can download a zip from the website with all dependencies.
+Download the mod on [the website](https://lstwomods.com/) with dependencies and copy the files from the zip to the root of the game folder.
 
 ## Manual Installation
 
