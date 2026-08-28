@@ -60,12 +60,21 @@ public static class UIManager
     private static readonly TimeSpan RestartWindow = TimeSpan.FromSeconds(60);
     private const int RestartDelayMs = 1500;
 
+    /// <summary>
+    /// How long a freshly started overlay gets to connect back before it is treated as lost.
+    /// A process that starts but never connects (its own IPC connect failed, it hung during
+    /// plugin loading, ...) raises no Exited event, so without this the mod side waits in
+    /// AcceptTcpClientAsync forever and the UI simply never appears.
+    /// </summary>
+    private const int ConnectTimeoutMs = 20000;
+
     private static string _exePath;
     private static bool _disposed;
     private static bool _gaveUp;
     private static bool _everConnected;
     private static int  _restartPending;               // interlocked: one restart per incident
     private static int  _generation;                   // identifies which overlay instance an event came from
+    private static int  _connectedGeneration;          // last generation that actually connected back
     private static int  _totalRestarts;
     private static readonly List<DateTime> _restartTimes = new();
 
@@ -112,6 +121,18 @@ public static class UIManager
             _overlayExePath.Value = "Overlay/lstwoMODS_Overlay.exe";
         }
 
+        // The fallback path is not checked anywhere else, and starting the supervisor for an exe
+        // that isn't there just produces a listener nobody ever connects to  a silent, permanently
+        // missing UI. Say what is wrong instead.
+        if (!File.Exists(_exePath))
+        {
+            Plugin.LogSource.LogError(
+                $"[UIManager] Overlay executable not found at '{_exePath}'  the UI cannot start. " +
+                "Check that the 'Overlay' folder sits next to lstwoMODS_Core.dll and that your " +
+                "antivirus has not quarantined lstwoMODS_Overlay.exe.");
+            return;
+        }
+
         StartOverlay();
     }
 
@@ -139,9 +160,13 @@ public static class UIManager
             CreateNoWindow = true
         };
 
-        Process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        // Kept in a local as well as the static field: a failure below can start the next
+        // generation while this call is still running, and the rest of this method must keep
+        // operating on its own process, not on whatever replaced it.
+        var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        Process = process;
 
-        Process.OutputDataReceived += (_, args) =>
+        process.OutputDataReceived += (_, args) =>
         {
             if (!string.IsNullOrEmpty(args.Data))
             {
@@ -149,7 +174,7 @@ public static class UIManager
             }
         };
 
-        Process.ErrorDataReceived += (_, args) =>
+        process.ErrorDataReceived += (_, args) =>
         {
             if (!string.IsNullOrEmpty(args.Data))
             {
@@ -157,9 +182,9 @@ public static class UIManager
             }
         };
 
-        Process.Exited += (_, _) => OnOverlayLost(generation, "overlay process exited");
+        process.Exited += (_, _) => OnOverlayLost(generation, "overlay process exited");
 
-        IpcChannel = new IpcChannel(true, MainIpcChannelPort, OnChannelConnected, _authToken);
+        IpcChannel = new IpcChannel(true, MainIpcChannelPort, () => OnChannelConnected(generation), _authToken);
         IpcChannel.MessageReceived += HandleMessage;
         IpcChannel.Disconnected += () => OnOverlayLost(generation, "IPC connection lost");
 
@@ -174,13 +199,48 @@ public static class UIManager
 
         IpcChannelMainTask = IpcChannel.Main();
 
-        Process.Start();
-        Process.BeginOutputReadLine();
-        Process.BeginErrorReadLine();
+        try
+        {
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
+        catch (Exception ex)
+        {
+            // A failed start raises no Exited event, so nothing else would ever notice. This is
+            // what a quarantined, deleted or blocked overlay exe looks like from here.
+            Plugin.LogSource.LogError(
+                $"[UIManager] Could not start the overlay process '{_exePath}': {ex.Message}");
+            OnOverlayLost(generation, "overlay process failed to start");
+            return;
+        }
+
+        WatchForConnect(generation);
     }
 
-    private static void OnChannelConnected()
+    /// <summary>
+    /// Give this overlay generation <see cref="ConnectTimeoutMs"/> to connect back, and treat it
+    /// as lost if it doesn't. Covers the case the Exited event can't: an overlay process that is
+    /// still alive but will never talk to us.
+    /// </summary>
+    private static void WatchForConnect(int generation)
     {
+        Task.Run(async () =>
+        {
+            await Task.Delay(ConnectTimeoutMs);
+
+            if (_disposed || _gaveUp) return;
+            if (generation != Volatile.Read(ref _generation)) return;
+            if (Volatile.Read(ref _connectedGeneration) == generation) return;
+
+            OnOverlayLost(generation, $"overlay did not connect within {ConnectTimeoutMs / 1000}s");
+        });
+    }
+
+    private static void OnChannelConnected(int generation)
+    {
+        Volatile.Write(ref _connectedGeneration, generation);
+
         if (_everConnected)
         {
             // Reconnected after a restart  the mod-side element trees survived, replay

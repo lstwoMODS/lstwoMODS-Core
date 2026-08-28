@@ -67,6 +67,25 @@
       <PackageReference Include="Hexa.NET.OpenGL3" Version="1.1.0" />
     </ItemGroup>
 
+    <!-- App-local MSVC runtime. Every Hexa.NET native (glfw3, cimgui, ImGuiImpl, cimplot, ...)
+         imports vcruntime140, which ships with the VC++ redistributable and NOT with Windows.
+         On a machine without it LoadLibrary fails on the dependency, and .NET reports the
+         misleading "Unable to load DLL 'glfw3'" for a file that is plainly sitting right there.
+         vcruntime140_1 is x64/ARM64 only - no x86 build of it exists. -->
+    <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'win-x64' ">
+      <None Include="redist\x64\vcruntime140.dll;redist\x64\vcruntime140_1.dll">
+        <Link>%(Filename)%(Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup Condition=" '$(RuntimeIdentifier)' == 'win-x86' or '$(RuntimeIdentifier)' == '' ">
+      <None Include="redist\x86\vcruntime140.dll">
+        <Link>%(Filename)%(Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
     <ItemGroup>
       <ProjectReference Include="..\lstwoMODS.ImGui.Shared\lstwoMODS.ImGui.Shared.csproj" />
     </ItemGroup>

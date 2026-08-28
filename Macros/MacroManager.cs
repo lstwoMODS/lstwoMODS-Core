@@ -83,6 +83,56 @@ public static class MacroManager
         ArmTriggers();
     }
 
+    /// <summary>
+    /// Re-reads the groups folder and re-arms. For anything that writes a group file from outside
+    /// this class — installing a shared file, removing one — since <see cref="EnsureLoaded"/> runs
+    /// once and would otherwise not notice until the next launch.
+    ///
+    /// The in-memory groups are dropped, so callers holding a <see cref="MacroGroup"/> or a
+    /// <see cref="Macro"/> across this call are holding a stale object: look it up again by id.
+    /// Pending writes are flushed first, or a group saved moments ago would be re-read from the
+    /// version before it.
+    /// </summary>
+    public static void Reload()
+    {
+        DataStorage.FlushAll();
+
+        foreach (var macro in AllMacrosOrEmpty()) MacroRunner.Stop(macro);
+
+        _groups = null;
+        _toggleState.Clear();
+
+        EnsureLoaded();
+        ArmTriggers();
+        Changed?.Invoke();
+    }
+
+    private static IEnumerable<Macro> AllMacrosOrEmpty()
+        => _groups == null ? Enumerable.Empty<Macro>() : AllMacros();
+
+    /// <summary>
+    /// Adds a group that came from somewhere else — an installed bundle, a shared file — replacing
+    /// any group with the same id. The group is written to its own file and everything is then
+    /// re-read, because <see cref="EnsureLoaded"/> is where the normalisation an imported file needs
+    /// lives: exactly one default group, globally unique slugs, and trigger migration. Returns the
+    /// group as it ended up after that, which is not the object passed in.
+    /// </summary>
+    public static MacroGroup ImportGroup(MacroGroup group)
+    {
+        if (group == null || string.IsNullOrEmpty(group.Id)) return null;
+
+        EnsureLoaded();
+
+        // A shared file always arrives as a normal group; the receiving side keeps its own default.
+        group.IsDefault = false;
+        group.Macros ??= new List<Macro>();
+
+        DataStorage.Save(StorageId, GroupKey(group.Id), group);
+        Reload();
+
+        return _groups.FirstOrDefault(g => g.Id == group.Id);
+    }
+
     /// <summary>Create a macro in <paramref name="group"/> (the default group when null).</summary>
     public static Macro Add(string name, MacroGroup group = null)
     {

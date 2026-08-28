@@ -10,6 +10,7 @@ public class DragTargetRenderer : UIRenderer
 {
     private string[] _acceptTypes;
     private bool     _insertBetween;
+    private bool     _insertVertical;
     private List<BaseUIElementData> _children;
 
     private bool   _hasNewDrop;
@@ -20,18 +21,20 @@ public class DragTargetRenderer : UIRenderer
     public DragTargetRenderer(BaseUIElementData data) : base(data)
     {
         var d       = (DragTargetData)data;
-        _acceptTypes   = d.AcceptTypes;
-        _insertBetween = d.InsertBetween;
-        _children      = d.Children;
+        _acceptTypes    = d.AcceptTypes;
+        _insertBetween  = d.InsertBetween;
+        _insertVertical = d.InsertVertical;
+        _children       = d.Children;
     }
 
     public override void ApplyState(BaseUIElementData data)
     {
         var d        = (DragTargetData)data;
-        Data           = d;
-        Name           = d.Name;
-        _acceptTypes   = d.AcceptTypes;
-        _insertBetween = d.InsertBetween;
+        Data            = d;
+        Name            = d.Name;
+        _acceptTypes    = d.AcceptTypes;
+        _insertBetween  = d.InsertBetween;
+        _insertVertical = d.InsertVertical;
         if (d.Children?.Count > 0) _children = d.Children;
     }
 
@@ -44,14 +47,21 @@ public class DragTargetRenderer : UIRenderer
 
         if (!ImGui.BeginDragDropTarget()) return;
 
-        // Insert-between: draw a vertical line at the edge of whichever half the cursor is over
-        // (before / after this element) instead of the default whole-element highlight box, so a
-        // drop lands in the gap between items rather than "on" one.
+        // Insert-between: draw a line at the edge of whichever half the cursor is over (before /
+        // after this element) instead of the default whole-element highlight box, so a drop lands in
+        // the gap between items rather than "on" one. The axis follows how the list is laid out: a
+        // vertical list needs a horizontal line above or below the row, not one beside it.
         var rectMin = ImGui.GetItemRectMin();
         var rectMax = ImGui.GetItemRectMax();
-        var after   = ImGui.GetMousePos().X >= (rectMin.X + rectMax.X) * 0.5f;
+        var mouse   = ImGui.GetMousePos();
+        var style   = ImGui.GetStyle();
+
+        var after = _insertVertical
+            ? mouse.Y >= (rectMin.Y + rectMax.Y) * 0.5f
+            : mouse.X >= (rectMin.X + rectMax.X) * 0.5f;
+
         // Centred in the spacing gap, not flush against this element, see CollapsingHeaderRenderer.
-        var gap     = ImGui.GetStyle().ItemSpacing.X * 0.5f;
+        var gap = (_insertVertical ? style.ItemSpacing.Y : style.ItemSpacing.X) * 0.5f;
 
         foreach (var type in _acceptTypes)
         {
@@ -64,10 +74,20 @@ public class DragTargetRenderer : UIRenderer
 
             if (_insertBetween)
             {
-                var x = after ? rectMax.X + gap : rectMin.X - gap;
-                ImGui.GetWindowDrawList().AddLine(
-                    new Vector2(x, rectMin.Y), new Vector2(x, rectMax.Y),
-                    ImGui.GetColorU32(ImGuiCol.DragDropTarget), 3f);
+                var color = ImGui.GetColorU32(ImGuiCol.DragDropTarget);
+
+                if (_insertVertical)
+                {
+                    var y = after ? rectMax.Y + gap : rectMin.Y - gap;
+                    ImGui.GetWindowDrawList().AddLine(
+                        new Vector2(rectMin.X, y), new Vector2(rectMax.X, y), color, 3f);
+                }
+                else
+                {
+                    var x = after ? rectMax.X + gap : rectMin.X - gap;
+                    ImGui.GetWindowDrawList().AddLine(
+                        new Vector2(x, rectMin.Y), new Vector2(x, rectMax.Y), color, 3f);
+                }
             }
 
             if (payload.Delivery)
@@ -96,6 +116,7 @@ public class DragTargetRenderer : UIRenderer
             Enabled        = Data.Enabled,
             AcceptTypes    = _acceptTypes,
             InsertBetween  = _insertBetween,
+            InsertVertical = _insertVertical,
             Children       = _children,
             DroppedType    = _droppedType,
             DroppedPayload = _droppedPayload,

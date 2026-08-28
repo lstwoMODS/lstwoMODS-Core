@@ -22,8 +22,6 @@ public class NormalImGuiWindow : GlfwWindow
 
     private ImGuiContextPtr _imGuiContext;
     private ImGuiIOPtr _io;
-    private bool _wantsInput;
-    private bool _isConfigured;
 
     public NormalImGuiWindow(string windowId, Action onConfigure, Action onRender, string windowTitle, int width, int height, (float, float, float, float) clearColor = default, WindowType type = WindowType.Normal, string iconPath = "", bool allowClose = false, IRenderBackend? backend = null)
         : base(clearColor == default ? (0.45f, 0.55f, 0.60f, 1.00f) : clearColor, type, windowTitle, width, height, iconPath, allowClose, backend)
@@ -132,7 +130,17 @@ public class NormalImGuiWindow : GlfwWindow
     {
         Backend.NewImGuiFrame();
         ImGuiImplGLFW.NewFrame();
+
+        // Backstop for the frames after a pass-through transition, before SyncMainViewportInputFlag
+        // below has been seen by the backend: until then NewFrame still resets
+        // GLFW_MOUSE_PASSTHROUGH and strips WS_EX_TRANSPARENT off the overlay. Also covers any
+        // future path that clears the styles behind our back.
+        EnforceInputPassthrough();
+
         ImGui.NewFrame();
+
+        // Must come after NewFrame, which rewrites the main viewport's flags.
+        SyncMainViewportInputFlag();
 
         try
         {

@@ -17,6 +17,8 @@ public class LstwoModsPanels : UIComponent
 {
     //public static ConfigEntry<int> TabModeConfigEntry;
 
+    public static readonly string ModName = DateTime.Now.Month == 4 && DateTime.Now.Day == 1 ? "ProjectMods Enterprise" : "lstwoMODS";
+
     public static SettingsWindow SettingsWindow;
     public static StyleEditorWindow StyleEditorWindow;
     public static MacrosWindow MacrosWindow;
@@ -66,8 +68,6 @@ public class LstwoModsPanels : UIComponent
         windowsModeUI.SetVisible(false);
         mainMenuBarUI.SetVisible(false);
 
-        // The shared "Add to macro" / "Create hotkey" dialog lives at the root so any
-        // right-click context menu (in any mod panel or window) can open it.
         Add(windowsModeUI, mainMenuBarUI, ModContextMenuService.BuildUI());
         Refresh();
     }
@@ -100,11 +100,7 @@ public class LstwoModsPanels : UIComponent
             {
                 var key = tab.GetType().FullName;
 
-                // Persisted open/closed state, keyed by window type name. New windows
-                // (no saved entry) default to open.
-                var wasOpen = DataStorage.BagEntryExists(WindowStateStorageId, key)
-                    ? DataStorage.LoadFromBag<bool>(WindowStateStorageId, key)
-                    : true;
+                var wasOpen = !DataStorage.BagEntryExists(WindowStateStorageId, key) || DataStorage.LoadFromBag<bool>(WindowStateStorageId, key);
 
                 var menuItem = new MenuItem(tab.Name).WithSelected(wasOpen);
 
@@ -129,9 +125,6 @@ public class LstwoModsPanels : UIComponent
                     ((WindowData)window.Data).Open = open;
                     window.MarkChanged();
 
-                    // Persist directly: closing via the menu updates both Open and Data.Open on
-                    // the overlay in the same ApplyState, so GetNewState() sees no diff and
-                    // window.OnOpen never fires  it can't be relied on to save the closed state.
                     DataStorage.SaveToBag(WindowStateStorageId, key, open);
                 });
 
@@ -153,9 +146,12 @@ public class LstwoModsPanels : UIComponent
     private Container MainMenuBarUI()
     {
         return new Container("MainMenuBarUI",
-            new MainMenuBar("lstwoMODS_MainMenuBar",
-                _windowMenuItems.Select(pair => (BaseUIElement)pair.MenuItem).ToArray()
-            )
+            new MainMenuBar("lstwoMODS_MainMenuBar", [
+                new UIText("modname", ModName),
+                new Separator("sep"),
+                
+                .._windowMenuItems.Select(pair => (BaseUIElement)pair.MenuItem).ToArray()
+            ])
         );
     }
 
@@ -163,9 +159,7 @@ public class LstwoModsPanels : UIComponent
     {
         var mode = Plugin.F2ModeEntry?.Value ?? F2Mode.ToggleMenuBarAndPanels;
 
-        // Panels stay visible unless F2 toggles them together with the menu bar.
         var windowsVisible = mode != F2Mode.ToggleMenuBarAndPanels || Enabled;
-        // The menu bar follows the toggle, except in "toggle nothing" mode where it's always shown.
         var menuBarVisible = mode == F2Mode.ToggleNothing || Enabled;
 
         windowsModeUI.SetVisible(windowsVisible);
@@ -190,7 +184,6 @@ public class LstwoModsPanels : UIComponent
 
         for (var i = 0; i < Windows.Count; i++)
         {
-            // ImGui keys window settings from the "###" marker onward (see BaseWindow.WindowTitle).
             sb.AppendLine($"[Window][###{Windows[i].Name}]");
             sb.AppendLine($"DockId=0x{WindowsModeDockSpaceId:X8},{i}");
             sb.AppendLine();

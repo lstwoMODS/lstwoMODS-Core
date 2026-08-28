@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Collections;
@@ -43,7 +44,7 @@ public class Plugin : BaseUnityPlugin
     public static ConfigEntry<F2Mode> F2ModeEntry;
     public static ConfigEntry<bool> DeveloperModeEntry;
 
-    // COMPATIBILITY (read at overlay creation  changes require a restart to take effect)
+    // COMPATIBILITY (read at overlay creation, changes require a restart to take effect)
     public static ConfigEntry<bool> MainViewportSeparateWindowEntry;
     public static ConfigEntry<bool> DisableMultiViewportEntry;
 
@@ -60,13 +61,15 @@ public class Plugin : BaseUnityPlugin
     {
         Instance = this;
 
+        HardenManagerObject();
+
         // Everything that dispatches to the main thread (Ref<T>.Changed, element callbacks)
         // needs to know which thread that is, so claim it before any of it can run.
         MainThread.Claim();
 
         // Keep the Unity player ticking while the game window is unfocused. When the overlay
         // takes keyboard focus the game is technically unfocused, and with the default
-        // runInBackground=false Unity stops calling Update() entirely  which freezes the
+        // runInBackground=false Unity stops calling Update() entirely, which freezes the
         // MainThread queue that overlay hotkeys (F2) and UI callbacks are drained on, so they
         // only fire once you alt-tab back. This does not override a game's own timeScale-based
         // pause (Update runs regardless of timeScale); it only prevents the built-in
@@ -98,6 +101,48 @@ public class Plugin : BaseUnityPlugin
             UIInspectorWindow = new UIInspectorWindow();
 
         Logger.LogInfo($"Plugin {GUID} is loaded!");
+    }
+
+    // BepInEx creates BepInEx_Manager and calls DontDestroyOnLoad on it from the
+    // Application..cctor entrypoint, which runs before the first scene exists. On Unity 2021.3+
+    // that call does not stick: the manager stays parented to the bootstrap scene and every
+    // plugin component on it is destroyed the moment the first real scene loads (Wobbly Life
+    // 1.1.0.0 on Unity 2022.3 does exactly this, and the whole UI dies a second into boot).
+    // BepInEx's HideManagerGameObject=true only works around it by accident, because
+    // HideAndDontSave carries HideFlags.DontSave, which Unity documents as "will not be
+    // destroyed when a new scene is loaded". Set that one bit ourselves so a plain
+    // drag-and-drop install survives with a stock BepInEx.cfg. DontSave only, never
+    // HideAndDontSave: HideInHierarchy would hide the manager from object browsers and from
+    // GameObject.Find, which is what the config option warns about breaking.
+    private void HardenManagerObject()
+    {
+        // Read the state BepInEx left the object in before touching it: on a build where the
+        // chainloader runs after the first scene this already says DontDestroyOnLoad, and on one
+        // where it runs before, it does not. Reading it after our own call would only ever echo
+        // our own call back.
+        var priorScene = gameObject.scene.name;
+        var priorFlags = gameObject.hideFlags;
+
+        gameObject.hideFlags |= HideFlags.DontSave;
+        DontDestroyOnLoad(gameObject);
+
+        SceneManager.sceneLoaded += ReanchorManagerObject;
+
+        Logger.LogInfo($"[Plugin] Manager object hardened (was scene '{priorScene}' flags {priorFlags}, " +
+                       $"now scene '{gameObject.scene.name}' flags {gameObject.hideFlags}).");
+    }
+
+    // DontSave keeps the manager alive across that first load, but it is still attached to the
+    // bootstrap scene that just went away. Once a real scene exists DontDestroyOnLoad behaves,
+    // so re-assert it once to move the object into the DontDestroyOnLoad scene where it belongs.
+    private static void ReanchorManagerObject(Scene scene, LoadSceneMode mode)
+    {
+        SceneManager.sceneLoaded -= ReanchorManagerObject;
+
+        if (Instance == null) return;
+
+        DontDestroyOnLoad(Instance.gameObject);
+        LogSource.LogInfo($"[Plugin] Manager object anchored in scene '{Instance.gameObject.scene.name}'.");
     }
 
     private void Start()
@@ -181,7 +226,7 @@ public class Plugin : BaseUnityPlugin
         MainThread.Drain();
 
         // Isolate each mod's Update: an exception in one must not skip every mod after it in the
-        // list (that silently freezes their per-frame logic  e.g. status indicators  while their
+        // list (that silently freezes their per-frame logic (e.g. status indicators) while their
         // event/coroutine-driven features keep working, which is near-impossible to diagnose).
         foreach(var mod in Mods)
         {
@@ -203,7 +248,7 @@ public class Plugin : BaseUnityPlugin
     {
         if (Window?.LstwoModsPanels == null) return;
 
-        // In "toggle nothing" mode F2 is inert  the UI stays as-is.
+        // In "toggle nothing" mode F2 is inert and the UI stays as-is.
         if (F2ModeEntry.Value == F2Mode.ToggleNothing) return;
 
         var panels = Window.LstwoModsPanels;
@@ -223,14 +268,28 @@ public class Plugin : BaseUnityPlugin
     // Saves are write-behind (see DataStorage), so anything changed in the last few seconds is
     // still only in memory at this point. Both hooks are needed: OnApplicationQuit runs on a
     // clean quit, OnDestroy also covers the plugin being torn down without one.
+    private static bool _quitting;
+
     private void OnApplicationQuit()
     {
+        _quitting = true;
         DataStorage.FlushAll();
     }
 
     private void OnDestroy()
     {
         DataStorage.FlushAll();
+
+        // OnDestroy without a preceding OnApplicationQuit means the plugin component itself was
+        // torn down while the game kept running: the BepInEx manager object was destroyed, or
+        // something Destroy()d us. Update() stops running from here on, so the main-thread queue
+        // the whole UI is driven from is dead and the overlay has to go with it. Say so out loud:
+        // otherwise this looks exactly like a normal shutdown in the log and the UI just vanishes.
+        if (!_quitting)
+            Logger.LogWarning(
+                "[Plugin] Plugin destroyed while the game is still running, something destroyed the " +
+                "BepInEx manager object. Shutting the UI down; restart the game to get it back.");
+
         UIManager.Dispose();
     }
 

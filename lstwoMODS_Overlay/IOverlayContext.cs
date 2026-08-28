@@ -27,4 +27,16 @@ public interface IOverlayContext
 
     /// <summary>Send a raw JSON string to the mod over IPC. Thread-safe.</summary>
     void SendToMod(string json);
+
+    /// <summary>
+    /// Ask the user for an existing file with the native Open dialog. Returns immediately: the
+    /// dialog runs its own modal message loop on a background STA thread so the overlay keeps
+    /// rendering, and <paramref name="onResult"/> runs on that thread with the chosen path, or
+    /// null if the user cancelled.
+    /// Set <see cref="FileDialogOptions.OwnerHandle"/> to keep the dialog above the overlay.
+    /// </summary>
+    void ShowOpenFileDialog(FileDialogOptions options, Action<string?> onResult);
+
+    /// <summary>Same as <see cref="ShowOpenFileDialog"/>, for picking a file to write to.</summary>
+    void ShowSaveFileDialog(FileDialogOptions options, Action<string?> onResult);
 }

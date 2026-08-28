@@ -35,13 +35,19 @@ public class DragTarget : BaseUIElement<DragTarget>
         };
     }
 
-    /// <summary>Switch to insert-between mode: the overlay draws a vertical insertion line at the
-    /// left/right edge (by cursor half) instead of a whole-element highlight, and reports the side
+    /// <summary>Switch to insert-between mode: the overlay draws an insertion line at the edge of
+    /// whichever half the cursor is over instead of a whole-element highlight, and reports the side
     /// so a drop lands in the gap between items. <paramref name="onDropBetween"/> receives
-    /// (payloadType, payloadData, after). Chainable.</summary>
-    public DragTarget WithInsertBetween(Action<string, string, bool> onDropBetween)
+    /// (payloadType, payloadData, after).
+    ///
+    /// <paramref name="vertical"/> splits the element top and bottom rather than left and right,
+    /// which is what a list stacked down the screen needs; the default suits a row or a grid.
+    /// Chainable.</summary>
+    public DragTarget WithInsertBetween(Action<string, string, bool> onDropBetween, bool vertical = false)
     {
-        ((DragTargetData)Data).InsertBetween = true;
+        var d = (DragTargetData)Data;
+        d.InsertBetween  = true;
+        d.InsertVertical = vertical;
         OnDropBetween = onDropBetween;
         return this;
     }

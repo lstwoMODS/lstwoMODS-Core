@@ -27,6 +27,16 @@ namespace lstwoMODS.ImGui.Shared
         /// <summary>Max nesting of <see cref="BatchMessage"/> to keep a crafted deep batch from overflowing the stack.</summary>
         private const int MaxBatchDepth = 8;
 
+        /// <summary>
+        /// How long a client keeps retrying the connect before giving up. A single refused
+        /// connect must not be fatal: the server end may still be coming up, and security
+        /// software routinely delays the first loopback connect of a freshly written exe.
+        /// </summary>
+        private const int ConnectTimeoutMs = 10000;
+
+        /// <summary>Pause between connect attempts.</summary>
+        private const int ConnectRetryDelayMs = 250;
+
         public enum LogType
         {
             Debug,
@@ -91,10 +101,7 @@ namespace lstwoMODS.ImGui.Shared
                 }
                 else
                 {
-                    _client = new TcpClient();
-                    Log?.Invoke("TCP Client Created", LogType.Debug);
-
-                    await _client.ConnectAsync(IPAddress.Loopback, Port).ConfigureAwait(false);
+                    _client = await ConnectWithRetry().ConfigureAwait(false);
                     Log?.Invoke("Connected to Server", LogType.Debug);
                 }
 
@@ -109,6 +116,10 @@ namespace lstwoMODS.ImGui.Shared
                         if (!FixedTimeEquals(received, _authToken))
                         {
                             Log?.Invoke("Handshake failed: invalid auth token. Closing connection.", LogType.Error);
+                            // Report it as a lost connection: whoever owns the channel has to be
+                            // able to tear the peer down and start over, otherwise a single bad
+                            // connect leaves both sides waiting on each other forever.
+                            Disconnected?.Invoke();
                             Dispose();
                             return;
                         }
@@ -130,10 +141,60 @@ namespace lstwoMODS.ImGui.Shared
 
                 await Task.WhenAll(readTask, writeTask).ConfigureAwait(false);
             }
+            // Disposed while still waiting for the peer (accept / connect / handshake). The socket
+            // throws ObjectDisposedException out of the pending accept, which is the expected way
+            // out of this method on shutdown  not something to shout about in the log.
+            catch (Exception e) when (IsDisposed || e is ObjectDisposedException || e is OperationCanceledException)
+            {
+                Log?.Invoke("Channel closed before the peer connected.", LogType.Debug);
+                Dispose();
+            }
             catch (Exception e)
             {
                 Log?.Invoke("ERROR IN IPC CHANNEL MAIN: " + e, LogType.Error);
+                // The connect itself failed (port taken, connection refused, peer never came up).
+                // Both ReadLoop and WriteLoop report their failures this way; without it here, a
+                // failure before the loops even start is silent and nobody restarts anything.
+                Disconnected?.Invoke();
                 Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Connect to the server end, retrying refused connects until <see cref="ConnectTimeoutMs"/>
+        /// has elapsed. The last failure is rethrown so the caller reports it like any other
+        /// connection loss.
+        /// </summary>
+        private async Task<TcpClient> ConnectWithRetry()
+        {
+            var deadline = DateTime.UtcNow.AddMilliseconds(ConnectTimeoutMs);
+            var attempt = 0;
+
+            while (true)
+            {
+                attempt++;
+
+                var client = new TcpClient();
+                try
+                {
+                    await client.ConnectAsync(IPAddress.Loopback, Port).ConfigureAwait(false);
+
+                    if (attempt > 1)
+                        Log?.Invoke($"Connected on attempt {attempt}.", LogType.Debug);
+
+                    return client;
+                }
+                catch (SocketException e) when (!IsDisposed && DateTime.UtcNow < deadline)
+                {
+                    client.Close();
+                    Log?.Invoke($"Connect attempt {attempt} failed ({e.SocketErrorCode}); retrying.", LogType.Debug);
+                    await Task.Delay(ConnectRetryDelayMs, _cts.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    client.Close();
+                    throw;
+                }
             }
         }
 

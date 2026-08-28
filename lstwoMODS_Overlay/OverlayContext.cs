@@ -31,4 +31,14 @@ public class OverlayContext : IOverlayContext
     {
         Program.IpcChannel.SendMessage(new IpcMessage { Type = "_plugin", Payload = json });
     }
+
+    public void ShowOpenFileDialog(FileDialogOptions options, Action<string?> onResult)
+    {
+        FileDialog.ShowOpen(options, onResult);
+    }
+
+    public void ShowSaveFileDialog(FileDialogOptions options, Action<string?> onResult)
+    {
+        FileDialog.ShowSave(options, onResult);
+    }
 }

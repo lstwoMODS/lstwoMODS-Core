@@ -222,6 +222,9 @@ public class RemoteImGuiWindow : NormalImGuiWindow
                 ClearColor = (bg.X, bg.Y, bg.Z, 1.0f);
                 break;
         }
+
+        // No-op unless the window is in TitleBarTheme.MatchImGuiTheme.
+        SyncTitleBarToClearColor();
     }
 
     protected override void ShutdownImGui()

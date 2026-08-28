@@ -15,8 +15,15 @@ namespace lstwoMODS.ImGui.Shared.UI
         /// over) and report the side via <see cref="DroppedAfter"/>. For reordering a horizontal
         /// row/grid of items by dropping into the gaps between them.</summary>
         public bool     InsertBetween  { get; set; } = false;
-        /// <summary>In <see cref="InsertBetween"/> mode, whether the drop landed on the right half
-        /// (insert after this element) rather than the left (insert before).</summary>
+        /// <summary>In <see cref="InsertBetween"/> mode, split the element top/bottom and draw a
+        /// horizontal line instead of left/right and a vertical one. For a list that stacks down the
+        /// screen, which is what a rail or a settings list is, the sideways version reads as
+        /// nonsense: the line appears beside the row rather than in the gap it would land in.</summary>
+        public bool     InsertVertical { get; set; } = false;
+
+        /// <summary>In <see cref="InsertBetween"/> mode, whether the drop landed on the second half
+        /// (insert after this element) rather than the first (insert before). That is the right half
+        /// normally, and the bottom half under <see cref="InsertVertical"/>.</summary>
         public bool     DroppedAfter   { get; set; } = false;
         public List<BaseUIElementData> Children { get; set; } = new List<BaseUIElementData>();
     }
