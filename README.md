@@ -1,4 +1,4 @@
-# lstwoMODS-Core
+﻿# lstwoMODS-Core
 
 Core UI for lstwoMODS
 
@@ -43,3 +43,10 @@ Download the mod on [the website](https://lstwomods.com/) with dependencies and 
 ---
 
 Join my discord to get support or just chat: https://discord.gg/cKWcxccQXU
+
+## Third-Party Licenses
+
+Core and the overlay redistribute third-party libraries, fonts and native binaries.
+Their notices are in [licenses/lstwomods_core/THIRD-PARTY-NOTICES.md](licenses/lstwomods_core/THIRD-PARTY-NOTICES.md),
+which is deployed to `BepInEx/plugins/lstwoMODS/licenses/lstwomods_core/` with every release.
+Modpacks add their own folder next to it.

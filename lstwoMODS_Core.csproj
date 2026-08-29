@@ -69,4 +69,11 @@
         <None Remove="lstwoMODS_Overlay\**"/>
         <None Remove="lstwoMODS.ImGui.Shared\**"/>
     </ItemGroup>
+
+    <!-- Third-party license notices. Ship next to the plugin DLLs. -->
+    <ItemGroup>
+        <None Update="licenses\**\*.md">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
 </Project>
