@@ -757,16 +757,11 @@ public class RemoteImGuiWindow : NormalImGuiWindow
 
                 if (!string.IsNullOrEmpty(liveData.Tooltip))
                 {
-                    if (liveData.TooltipHoveredFlags == 0)
-                    {
-                        ImGui.SetItemTooltip(liveData.Tooltip);
-                    }
-                    else
-                    {
-                        var flags = (Hexa.NET.ImGui.ImGuiHoveredFlags)(int)liveData.TooltipHoveredFlags;
-                        if (ImGui.IsItemHovered(flags))
-                            ImGui.SetTooltip(liveData.Tooltip);
-                    }
+                    // TooltipHoveredFlags of 0 means "use the style's tooltip delays", which is
+                    // what ForTooltip resolves to - the same flags SetItemTooltip uses internally.
+                    RenderTooltip(liveData.Tooltip, liveData.TooltipHoveredFlags == 0
+                        ? Hexa.NET.ImGui.ImGuiHoveredFlags.ForTooltip
+                        : (Hexa.NET.ImGui.ImGuiHoveredFlags)(int)liveData.TooltipHoveredFlags);
                 }
 
                 if (showChildren)
@@ -795,6 +790,64 @@ public class RemoteImGuiWindow : NormalImGuiWindow
         }
     }
 
+
+    /// <summary>
+    /// Wrap width for tooltip text, as a multiple of the current font size. Without it a long
+    /// tooltip grows into one very wide line - precisely the case that used to escape the overlay
+    /// window. Same figure ImGui's own demo uses for its wrapped tooltips.
+    /// </summary>
+    private const float TooltipWrapWidthEm = 35f;
+
+    /// <summary>
+    /// Draw <paramref name="text"/> as the current item's tooltip. Equivalent to
+    /// ImGui.SetItemTooltip - same hover flags, same delays - plus three things it can't do:
+    /// <see cref="PinTooltipToHostViewport"/>, wrapping, and TextUnformatted. The last matters
+    /// because SetTooltip takes its text as a printf format string, so a tooltip containing a '%'
+    /// would otherwise be read as a format specifier.
+    /// </summary>
+    public void RenderTooltip(string text, Hexa.NET.ImGui.ImGuiHoveredFlags flags)
+    {
+        if (!ImGui.IsItemHovered(flags))
+            return;
+
+        PinTooltipToHostViewport();
+
+        if (!ImGui.BeginTooltip())
+            return;
+
+        ImGui.PushTextWrapPos(ImGui.GetFontSize() * TooltipWrapWidthEm);
+        ImGui.TextUnformatted(text);
+        ImGui.PopTextWrapPos();
+        ImGui.EndTooltip();
+    }
+
+    /// <summary>
+    /// Pin the next tooltip to the viewport of the window that owns the hovered item, so it can
+    /// neither be placed outside that window nor spawn an OS window of its own.
+    ///
+    /// ImGui hands every tooltip a non-negative ViewportAllowPlatformMonitorExtend, which does two
+    /// things: GetPopupAllowedExtentRect then returns the whole monitor rather than the host
+    /// viewport's rect, so a long tooltip is free to be placed anywhere on screen; and Begin
+    /// afterwards gives it a topmost platform window of its own once it no longer fits the host
+    /// viewport. On an overlay that reads as a tooltip hanging over other applications, outside
+    /// the overlay, for as long as the tooltip is considered shown. Requesting a viewport
+    /// explicitly makes ImGui skip that whole block and leave the field at -1, which both clamps
+    /// the tooltip to the host viewport and takes the extra-window path out of reach.
+    ///
+    /// Applied to the overlay's own viewport only: a window torn off into a real OS window keeps
+    /// normal desktop behaviour, where a tooltip protruding past its edge is expected.
+    /// </summary>
+    public void PinTooltipToHostViewport()
+    {
+        if (Type != WindowType.Overlay)
+            return;
+
+        var viewport = ImGui.GetWindowViewport();
+        if (viewport.ID != ImGui.GetMainViewport().ID)
+            return;
+
+        ImGui.SetNextWindowViewport(viewport.ID);
+    }
 
     private string GetRenderBreadcrumb() => _renderStack.Count > 0
         ? string.Join(" > ", _renderStack)

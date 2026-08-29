@@ -190,8 +190,8 @@ public class TreeNodeRenderer : UIRenderer
 
     private void TagTooltip()
     {
-        if (!string.IsNullOrEmpty(_lineTagTooltip) && ImGui.IsItemHovered(ImGuiHoveredFlags.DelayNormal))
-            ImGui.SetTooltip(_lineTagTooltip);
+        if (!string.IsNullOrEmpty(_lineTagTooltip))
+            Window.RenderTooltip(_lineTagTooltip, ImGuiHoveredFlags.DelayNormal);
     }
 
     private static string FitWithEllipsis(string text, float avail)
